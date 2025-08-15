@@ -19,6 +19,12 @@ package edu.kit.datamanager.idoris.datatypes.services;
 import edu.kit.datamanager.idoris.core.events.EventPublisherService;
 import edu.kit.datamanager.idoris.datatypes.dao.IAtomicDataTypeDao;
 import edu.kit.datamanager.idoris.datatypes.entities.AtomicDataType;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +39,7 @@ import java.util.Optional;
  */
 @Service
 @Slf4j
+@Observed(contextualName = "atomicDataTypeService")
 public class AtomicDataTypeService {
     private final IAtomicDataTypeDao atomicDataTypeDao;
     private final EventPublisherService eventPublisher;
@@ -55,6 +62,9 @@ public class AtomicDataTypeService {
      * @return the created AtomicDataType entity
      */
     @Transactional
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "atomicDataTypeService.createAtomicDataType", description = "Time taken to create an atomic data type", histogram = true)
+    @Counted(value = "atomicDataTypeService.createAtomicDataType.count", description = "Number of atomic data type creations")
     public AtomicDataType createAtomicDataType(AtomicDataType atomicDataType) {
         log.debug("Creating AtomicDataType: {}", atomicDataType);
         atomicDataType.setInternalId(null);
@@ -73,6 +83,9 @@ public class AtomicDataTypeService {
      * @throws IllegalArgumentException if the AtomicDataType does not exist
      */
     @Transactional
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "atomicDataTypeService.updateAtomicDataType", description = "Time taken to update an atomic data type", histogram = true)
+    @Counted(value = "atomicDataTypeService.updateAtomicDataType.count", description = "Number of atomic data type updates")
     public AtomicDataType updateAtomicDataType(AtomicDataType atomicDataType) {
         log.debug("Updating AtomicDataType: {}", atomicDataType);
 
@@ -99,7 +112,10 @@ public class AtomicDataTypeService {
      * @throws IllegalArgumentException if the AtomicDataType does not exist
      */
     @Transactional
-    public void deleteAtomicDataType(String id) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "atomicDataTypeService.deleteAtomicDataType", description = "Time taken to delete an atomic data type", histogram = true)
+    @Counted(value = "atomicDataTypeService.deleteAtomicDataType.count", description = "Number of atomic data type deletions")
+    public void deleteAtomicDataType(@SpanAttribute("atomicDataType.id") String id) {
         log.debug("Deleting AtomicDataType with ID: {}", id);
 
         AtomicDataType atomicDataType = atomicDataTypeDao.findById(id)
@@ -117,7 +133,10 @@ public class AtomicDataTypeService {
      * @return an Optional containing the AtomicDataType, or empty if not found
      */
     @Transactional(readOnly = true)
-    public Optional<AtomicDataType> getAtomicDataType(String id) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "atomicDataTypeService.getAtomicDataType", description = "Time taken to get an atomic data type", histogram = true)
+    @Counted(value = "atomicDataTypeService.getAtomicDataType.count", description = "Number of atomic data type retrievals")
+    public Optional<AtomicDataType> getAtomicDataType(@SpanAttribute("atomicDataType.id") String id) {
         log.debug("Retrieving AtomicDataType with ID: {}", id);
         return atomicDataTypeDao.findById(id);
     }
@@ -128,6 +147,9 @@ public class AtomicDataTypeService {
      * @return a list of all AtomicDataType entities
      */
     @Transactional(readOnly = true)
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "atomicDataTypeService.getAllAtomicDataTypes", description = "Time taken to get all atomic data types", histogram = true)
+    @Counted(value = "atomicDataTypeService.getAllAtomicDataTypes.count", description = "Number of get all atomic data types requests")
     public List<AtomicDataType> getAllAtomicDataTypes() {
         log.debug("Retrieving all AtomicDataTypes");
         return atomicDataTypeDao.findAll();
@@ -142,7 +164,10 @@ public class AtomicDataTypeService {
      * @throws IllegalArgumentException if the AtomicDataType does not exist
      */
     @Transactional
-    public AtomicDataType patchAtomicDataType(String id, AtomicDataType atomicDataTypePatch) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "atomicDataTypeService.patchAtomicDataType", description = "Time taken to patch an atomic data type", histogram = true)
+    @Counted(value = "atomicDataTypeService.patchAtomicDataType.count", description = "Number of atomic data type patches")
+    public AtomicDataType patchAtomicDataType(@SpanAttribute("atomicDataType.id") String id, AtomicDataType atomicDataTypePatch) {
         log.debug("Patching AtomicDataType with ID: {}, patch: {}", id, atomicDataTypePatch);
         if (id == null || id.isEmpty()) {
             throw new IllegalArgumentException("AtomicDataType ID cannot be null or empty");

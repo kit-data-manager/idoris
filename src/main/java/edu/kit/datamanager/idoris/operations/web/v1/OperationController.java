@@ -23,6 +23,12 @@ import edu.kit.datamanager.idoris.operations.web.api.IOperationApi;
 import edu.kit.datamanager.idoris.operations.web.hateoas.OperationModelAssembler;
 import edu.kit.datamanager.idoris.rules.validation.ValidationPolicyValidator;
 import edu.kit.datamanager.idoris.rules.validation.ValidationResult;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -50,6 +56,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @RestController
 @RequestMapping("/v1/operations")
 @Tag(name = "Operation", description = "API for managing Operations")
+@Observed(contextualName = "operationController")
 public class OperationController implements IOperationApi {
 
     @Autowired
@@ -72,6 +79,9 @@ public class OperationController implements IOperationApi {
                                     schema = @Schema(implementation = Operation.class)))
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "operationController.getAllOperations", description = "Time taken to get all operations", histogram = true)
+    @Counted(value = "operationController.getAllOperations.count", description = "Number of get all operations requests")
     public ResponseEntity<CollectionModel<EntityModel<Operation>>> getAllOperations() {
         List<EntityModel<Operation>> operations = StreamSupport.stream(operationService.getAllOperations().spliterator(), false)
                 .map(operationModelAssembler::toModel)
@@ -100,9 +110,12 @@ public class OperationController implements IOperationApi {
                     @ApiResponse(responseCode = "404", description = "Operation not found")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "operationController.getOperation", description = "Time taken to get an operation", histogram = true)
+    @Counted(value = "operationController.getOperation.count", description = "Number of get operation requests")
     public ResponseEntity<EntityModel<Operation>> getOperation(
             @Parameter(description = "PID or internal ID of the Operation", required = true)
-            @PathVariable String id) {
+            @SpanAttribute("operation.id") @PathVariable String id) {
         return operationService.getOperation(id)
                 .map(operationModelAssembler::toModel)
                 .map(ResponseEntity::ok)
@@ -124,6 +137,9 @@ public class OperationController implements IOperationApi {
                     @ApiResponse(responseCode = "400", description = "Invalid input or validation failed")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "operationController.createOperation", description = "Time taken to create an operation", histogram = true)
+    @Counted(value = "operationController.createOperation.count", description = "Number of create operation requests")
     public ResponseEntity<EntityModel<Operation>> createOperation(
             @Parameter(description = "Operation to create", required = true)
             @Valid @RequestBody Operation operation) {
@@ -158,11 +174,14 @@ public class OperationController implements IOperationApi {
                     @ApiResponse(responseCode = "404", description = "Operation not found")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "operationController.updateOperation", description = "Time taken to update an operation", histogram = true)
+    @Counted(value = "operationController.updateOperation.count", description = "Number of update operation requests")
     public ResponseEntity<EntityModel<Operation>> updateOperation(
             @Parameter(description = "PID or internal ID of the Operation", required = true)
-            @PathVariable String id,
+            @SpanAttribute @PathVariable String id,
             @Parameter(description = "Updated Operation", required = true)
-            @Valid @RequestBody Operation operation) {
+            @SpanAttribute @Valid @RequestBody Operation operation) {
         // Check if the entity exists
         if (!operationService.getOperation(id).isPresent()) {
             return ResponseEntity.notFound().build();
@@ -205,9 +224,12 @@ public class OperationController implements IOperationApi {
                     @ApiResponse(responseCode = "404", description = "Operation not found")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "operationController.deleteOperation", description = "Time taken to delete an operation", histogram = true)
+    @Counted(value = "operationController.deleteOperation.count", description = "Number of delete operation requests")
     public ResponseEntity<Void> deleteOperation(
             @Parameter(description = "PID or internal ID of the Operation", required = true)
-            @PathVariable String id) {
+            @SpanAttribute("operation.id") @PathVariable String id) {
         if (!operationService.getOperation(id).isPresent()) {
             return ResponseEntity.notFound().build();
         }
@@ -230,9 +252,12 @@ public class OperationController implements IOperationApi {
                     @ApiResponse(responseCode = "404", description = "Operation not found")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "operationController.validate", description = "Time taken to validate an operation", histogram = true)
+    @Counted(value = "operationController.validate.count", description = "Number of validate operation requests")
     public ResponseEntity<?> validate(
             @Parameter(description = "PID or internal ID of the Operation", required = true)
-            @PathVariable String id) {
+            @SpanAttribute("operation.id") @PathVariable String id) {
         if (!operationService.getOperation(id).isPresent()) {
             return ResponseEntity.notFound().build();
         }
@@ -262,9 +287,12 @@ public class OperationController implements IOperationApi {
                                     schema = @Schema(implementation = Operation.class)))
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "operationController.getOperationsForDataType", description = "Time taken to get operations for a data type", histogram = true)
+    @Counted(value = "operationController.getOperationsForDataType.count", description = "Number of get operations for data type requests")
     public ResponseEntity<CollectionModel<EntityModel<Operation>>> getOperationsForDataType(
             @Parameter(description = "PID or internal ID of the data type", required = true)
-            @RequestParam String id) {
+            @SpanAttribute("dataType.id") @RequestParam String id) {
         List<EntityModel<Operation>> operations = StreamSupport.stream(operationService.getOperationsForDataType(id).spliterator(), false)
                 .map(operationModelAssembler::toModel)
                 .collect(Collectors.toList());
@@ -293,11 +321,14 @@ public class OperationController implements IOperationApi {
                     @ApiResponse(responseCode = "404", description = "Operation not found")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "operationController.patchOperation", description = "Time taken to patch an operation", histogram = true)
+    @Counted(value = "operationController.patchOperation.count", description = "Number of patch operation requests")
     public ResponseEntity<EntityModel<Operation>> patchOperation(
             @Parameter(description = "PID or internal ID of the Operation", required = true)
-            @PathVariable String id,
+            @SpanAttribute @PathVariable String id,
             @Parameter(description = "Partial Operation with fields to update", required = true)
-            @RequestBody Operation operationPatch) {
+            @SpanAttribute @RequestBody Operation operationPatch) {
         if (!operationService.getOperation(id).isPresent()) {
             return ResponseEntity.notFound().build();
         }

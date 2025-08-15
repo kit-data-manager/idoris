@@ -60,4 +60,20 @@ public class IdorisApplication {
                 .withDialect(Dialect.NEO4J_5)
                 .build();
     }
+
+    // Unregister the OpenTelemetryMeterRegistry from Metrics.globalRegistry and make it available
+    // as a Spring bean instead.
+//    @Bean
+//    @ConditionalOnClass(name = "io.opentelemetry.javaagent.OpenTelemetryAgent")
+//    public MeterRegistry otelRegistry() {
+//        Optional<MeterRegistry> otelRegistry = Metrics.globalRegistry.getRegistries().stream()
+//                .filter(r -> r.getClass().getName().contains("OpenTelemetryMeterRegistry"))
+//                .findAny();
+//        otelRegistry.ifPresent(Metrics.globalRegistry::remove);
+//        return otelRegistry.orElse(null);
+//    }
+//    @Bean
+//    public MeterRegistry getMeterRegistry() {
+//        return new CompositeMeterRegistry();
+//    }
 }

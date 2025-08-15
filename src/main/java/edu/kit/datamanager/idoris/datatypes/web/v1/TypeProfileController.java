@@ -28,6 +28,12 @@ import edu.kit.datamanager.idoris.operations.services.OperationService;
 import edu.kit.datamanager.idoris.rules.logic.RuleService;
 import edu.kit.datamanager.idoris.rules.logic.RuleTask;
 import edu.kit.datamanager.idoris.rules.validation.ValidationResult;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -56,6 +62,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @RestController
 @RequestMapping("/v1/typeProfiles")
 @Tag(name = "TypeProfile", description = "API for managing TypeProfiles")
+@Observed(contextualName = "typeProfileController")
 public class TypeProfileController implements ITypeProfileApi {
     private final TypeProfileService typeProfileService;
     private final OperationService operationService;
@@ -89,6 +96,9 @@ public class TypeProfileController implements ITypeProfileApi {
                                     schema = @Schema(implementation = TypeProfile.class)))
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "typeProfileController.getAllTypeProfiles", description = "Time taken to get all type profiles", histogram = true)
+    @Counted(value = "typeProfileController.getAllTypeProfiles.count", description = "Number of get all type profiles requests")
     public ResponseEntity<CollectionModel<EntityModel<TypeProfile>>> getAllTypeProfiles() {
         List<EntityModel<TypeProfile>> typeProfiles = StreamSupport.stream(typeProfileService.getAllTypeProfiles().spliterator(), false)
                 .map(typeProfileModelAssembler::toModel)
@@ -117,9 +127,12 @@ public class TypeProfileController implements ITypeProfileApi {
                     @ApiResponse(responseCode = "404", description = "TypeProfile not found")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "typeProfileController.getTypeProfile", description = "Time taken to get a type profile", histogram = true)
+    @Counted(value = "typeProfileController.getTypeProfile.count", description = "Number of get type profile requests")
     public ResponseEntity<EntityModel<TypeProfile>> getTypeProfile(
             @Parameter(description = "PID or internal ID of the TypeProfile", required = true)
-            @PathVariable String id) {
+            @SpanAttribute @PathVariable String id) {
         return typeProfileService.getTypeProfile(id)
                 .map(typeProfileModelAssembler::toModel)
                 .map(ResponseEntity::ok)
@@ -141,9 +154,12 @@ public class TypeProfileController implements ITypeProfileApi {
                     @ApiResponse(responseCode = "404", description = "TypeProfile not found")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "typeProfileController.getOperationsForTypeProfile", description = "Time taken to get operations for a type profile", histogram = true)
+    @Counted(value = "typeProfileController.getOperationsForTypeProfile.count", description = "Number of get operations for type profile requests")
     public ResponseEntity<CollectionModel<EntityModel<Operation>>> getOperationsForTypeProfile(
             @Parameter(description = "PID or internal ID of the TypeProfile", required = true)
-            @PathVariable String id) {
+            @SpanAttribute @PathVariable String id) {
         if (!typeProfileService.getTypeProfile(id).isPresent()) {
             return ResponseEntity.notFound().build();
         }
@@ -177,9 +193,12 @@ public class TypeProfileController implements ITypeProfileApi {
                     @ApiResponse(responseCode = "404", description = "TypeProfile not found")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "typeProfileController.validate", description = "Time taken to validate a type profile", histogram = true)
+    @Counted(value = "typeProfileController.validate.count", description = "Number of validate type profile requests")
     public ResponseEntity<?> validate(
             @Parameter(description = "PID or internal ID of the TypeProfile", required = true)
-            @PathVariable String id) {
+            @SpanAttribute @PathVariable String id) {
         ValidationResult result = typeProfileService.validateTypeProfile(id);
         if (result.isValid()) {
             return ResponseEntity.ok(result);
@@ -203,9 +222,12 @@ public class TypeProfileController implements ITypeProfileApi {
                     @ApiResponse(responseCode = "404", description = "TypeProfile not found")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "typeProfileController.getInheritedAttributes", description = "Time taken to get inherited attributes", histogram = true)
+    @Counted(value = "typeProfileController.getInheritedAttributes.count", description = "Number of get inherited attributes requests")
     public ResponseEntity<CollectionModel<EntityModel<Attribute>>> getInheritedAttributes(
             @Parameter(description = "PID or internal ID of the TypeProfile", required = true)
-            @PathVariable String id) {
+            @SpanAttribute @PathVariable String id) {
         Iterable<TypeProfile> inheritanceChain = typeProfileService.getInheritanceChain(id);
         List<EntityModel<Attribute>> attributes = new ArrayList<>();
         inheritanceChain.forEach(typeProfile -> {
@@ -238,9 +260,12 @@ public class TypeProfileController implements ITypeProfileApi {
                     @ApiResponse(responseCode = "400", description = "Invalid input or validation failed")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "typeProfileController.createTypeProfile", description = "Time taken to create a type profile", histogram = true)
+    @Counted(value = "typeProfileController.createTypeProfile.count", description = "Number of create type profile requests")
     public ResponseEntity<EntityModel<TypeProfile>> createTypeProfile(
             @Parameter(description = "TypeProfile to create", required = true)
-            @Valid @RequestBody TypeProfile typeProfile) {
+            @SpanAttribute @Valid @RequestBody TypeProfile typeProfile) {
 
         // Validate BEFORE saving
         ValidationResult validationResult = ruleService.executeRules(
@@ -276,11 +301,14 @@ public class TypeProfileController implements ITypeProfileApi {
                     @ApiResponse(responseCode = "404", description = "TypeProfile not found")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "typeProfileController.updateTypeProfile", description = "Time taken to update a type profile", histogram = true)
+    @Counted(value = "typeProfileController.updateTypeProfile.count", description = "Number of update type profile requests")
     public ResponseEntity<EntityModel<TypeProfile>> updateTypeProfile(
             @Parameter(description = "PID or internal ID of the TypeProfile", required = true)
-            @PathVariable String id,
+            @SpanAttribute @PathVariable String id,
             @Parameter(description = "Updated TypeProfile", required = true)
-            @Valid @RequestBody TypeProfile typeProfile) {
+            @SpanAttribute @Valid @RequestBody TypeProfile typeProfile) {
         // Check if the entity exists
         if (!typeProfileService.getTypeProfile(id).isPresent()) {
             return ResponseEntity.notFound().build();
@@ -326,15 +354,45 @@ public class TypeProfileController implements ITypeProfileApi {
                     @ApiResponse(responseCode = "404", description = "TypeProfile not found")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "typeProfileController.deleteTypeProfile", description = "Time taken to delete a type profile", histogram = true)
+    @Counted(value = "typeProfileController.deleteTypeProfile.count", description = "Number of delete type profile requests")
     public ResponseEntity<Void> deleteTypeProfile(
             @Parameter(description = "PID or internal ID of the TypeProfile", required = true)
-            @PathVariable String id) {
+            @SpanAttribute @PathVariable String id) {
         if (!typeProfileService.getTypeProfile(id).isPresent()) {
             return ResponseEntity.notFound().build();
         }
 
         typeProfileService.deleteTypeProfile(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @GetMapping("/{id}/inheritanceTree")
+    @io.swagger.v3.oas.annotations.Operation(
+            summary = "Get inheritance tree of a TypeProfile",
+            description = "Returns the inheritance tree of a TypeProfile",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Inheritance tree found",
+                            content = @Content(mediaType = "application/hal+json")),
+                    @ApiResponse(responseCode = "404", description = "TypeProfile not found")
+            }
+    )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "typeProfileController.getInheritanceTree", description = "Time taken to get inheritance tree", histogram = true)
+    @Counted(value = "typeProfileController.getInheritanceTree.count", description = "Number of get inheritance tree requests")
+    public ResponseEntity<EntityModel<TypeProfileInheritance>> getInheritanceTree(
+            @Parameter(description = "PID or internal ID of the TypeProfile", required = true)
+            @SpanAttribute @NotNull @PathVariable String id) {
+        EntityModel<TypeProfileInheritance> resources = buildInheritanceTree(typeProfileService.getTypeProfile(id).orElseThrow());
+        resources.add(linkTo(methodOn(TypeProfileController.class).getInheritanceTree(id)).withSelfRel());
+        resources.add(linkTo(methodOn(TypeProfileController.class).getTypeProfile(id)).withRel("typeProfile"));
+
+        return ResponseEntity.ok(resources);
     }
 
     /**
@@ -353,11 +411,14 @@ public class TypeProfileController implements ITypeProfileApi {
                     @ApiResponse(responseCode = "404", description = "TypeProfile not found")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "typeProfileController.patchTypeProfile", description = "Time taken to patch a type profile", histogram = true)
+    @Counted(value = "typeProfileController.patchTypeProfile.count", description = "Number of patch type profile requests")
     public ResponseEntity<EntityModel<TypeProfile>> patchTypeProfile(
             @Parameter(description = "PID or internal ID of the TypeProfile", required = true)
-            @PathVariable String id,
+            @SpanAttribute @PathVariable String id,
             @Parameter(description = "Partial TypeProfile with fields to update", required = true)
-            @RequestBody TypeProfile typeProfilePatch) {
+            @SpanAttribute @RequestBody TypeProfile typeProfilePatch) {
         if (!typeProfileService.getTypeProfile(id).isPresent()) {
             return ResponseEntity.notFound().build();
         }
@@ -394,27 +455,20 @@ public class TypeProfileController implements ITypeProfileApi {
     }
 
     /**
-     * {@inheritDoc}
+     * Checks if a validation result contains errors based on the configured validation level.
+     *
+     * @param validationResult the validation result to check
+     * @return true if the validation result contains errors, false otherwise
      */
-    @Override
-    @GetMapping("/{id}/inheritanceTree")
-    @io.swagger.v3.oas.annotations.Operation(
-            summary = "Get inheritance tree of a TypeProfile",
-            description = "Returns the inheritance tree of a TypeProfile",
-            responses = {
-                    @ApiResponse(responseCode = "200", description = "Inheritance tree found",
-                            content = @Content(mediaType = "application/hal+json")),
-                    @ApiResponse(responseCode = "404", description = "TypeProfile not found")
-            }
-    )
-    public ResponseEntity<EntityModel<TypeProfileInheritance>> getInheritanceTree(
-            @Parameter(description = "PID or internal ID of the TypeProfile", required = true)
-            @NotNull @PathVariable String id) {
-        EntityModel<TypeProfileInheritance> resources = buildInheritanceTree(typeProfileService.getTypeProfile(id).orElseThrow());
-        resources.add(linkTo(methodOn(TypeProfileController.class).getInheritanceTree(id)).withSelfRel());
-        resources.add(linkTo(methodOn(TypeProfileController.class).getTypeProfile(id)).withRel("typeProfile"));
-
-        return ResponseEntity.ok(resources);
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "typeProfileController.hasValidationErrors", description = "Time taken to check validation errors", histogram = true)
+    @Counted(value = "typeProfileController.hasValidationErrors.count", description = "Number of validation error checks")
+    private boolean hasValidationErrors(@SpanAttribute ValidationResult validationResult) {
+        return validationResult.getOutputMessages()
+                .entrySet()
+                .stream()
+                .anyMatch(entry -> entry.getKey().isHigherOrEqualTo(applicationProperties.getValidationLevel())
+                        && !entry.getValue().isEmpty());
     }
 
     /**
@@ -423,7 +477,10 @@ public class TypeProfileController implements ITypeProfileApi {
      * @param typeProfile the TypeProfile to build the inheritance tree for
      * @return an EntityModel containing the inheritance tree
      */
-    private EntityModel<TypeProfileInheritance> buildInheritanceTree(TypeProfile typeProfile) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "typeProfileController.buildInheritanceTree", description = "Time taken to build inheritance tree", histogram = true)
+    @Counted(value = "typeProfileController.buildInheritanceTree.count", description = "Number of build inheritance tree calls")
+    private EntityModel<TypeProfileInheritance> buildInheritanceTree(@SpanAttribute TypeProfile typeProfile) {
         List<EntityModel<Attribute>> attributes = new ArrayList<>();
         typeProfile.getAttributes().forEach(profileAttribute -> {
             EntityModel<Attribute> attribute = EntityModel.of(profileAttribute);
@@ -450,20 +507,6 @@ public class TypeProfileController implements ITypeProfileApi {
         node.add(linkTo(methodOn(TypeProfileController.class).getOperationsForTypeProfile(typeProfile.getId())).withRel("operations"));
 
         return node;
-    }
-
-    /**
-     * Checks if a validation result contains errors based on the configured validation level.
-     *
-     * @param validationResult the validation result to check
-     * @return true if the validation result contains errors, false otherwise
-     */
-    private boolean hasValidationErrors(ValidationResult validationResult) {
-        return validationResult.getOutputMessages()
-                .entrySet()
-                .stream()
-                .anyMatch(entry -> entry.getKey().isHigherOrEqualTo(applicationProperties.getValidationLevel())
-                        && !entry.getValue().isEmpty());
     }
 
     public record TypeProfileInheritance(

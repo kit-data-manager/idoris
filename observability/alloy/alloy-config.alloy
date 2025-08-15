@@ -54,6 +54,8 @@ loki.write "loki" {
   }
 }
 
+
+// Prometheus scrape configuration for metrics collection
 prometheus.scrape "prometheus_metrics" {
   targets = [
     {"__address__" = "prometheus:9090"},
@@ -74,14 +76,23 @@ prometheus.scrape "tempo_metrics" {
   job_name = "tempo"
 }
 
-// Export metrics to Prometheus
+// Export metrics to Mimir
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = "http://mimir:9009/api/v1/push"
+  }
+}
+
+// Export metrics to Prometheus (for backward compatibility)
 prometheus.remote_write "prometheus" {
   endpoint {
     url = "http://prometheus:9090/api/v1/write"
   }
 }
 
-// OTLP receiver for traces and metrics
+
+
+// OTLP receiver for traces, metrics, and logs
 otelcol.receiver.otlp "default" {
   grpc {
     endpoint = "0.0.0.0:4317"
@@ -108,7 +119,7 @@ otelcol.processor.batch "default" {
 
 // Export metrics via Prometheus exporter
 otelcol.exporter.prometheus "default" {
-  forward_to = [prometheus.remote_write.prometheus.receiver]
+  forward_to = [prometheus.remote_write.prometheus.receiver, prometheus.remote_write.mimir.receiver]
 }
 
 // Export traces to Tempo

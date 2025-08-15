@@ -23,6 +23,8 @@ import edu.kit.datamanager.idoris.core.events.EntityUpdatedEvent;
 import edu.kit.datamanager.idoris.core.events.EventPublisherService;
 import edu.kit.datamanager.idoris.pids.entities.PersistentIdentifier;
 import edu.kit.datamanager.idoris.pids.services.PersistentIdentifierService;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
@@ -40,7 +42,7 @@ import java.util.Optional;
  */
 @Component
 @Slf4j
-@Observed
+@Observed(contextualName = "metadataEventListener")
 public class MetadataEventListener {
     private final PersistentIdentifierService pidService;
     private final EventPublisherService eventPublisher;
@@ -66,6 +68,8 @@ public class MetadataEventListener {
     @EventListener(classes = {EntityCreatedEvent.class})
     @Transactional
     @WithSpan(kind = SpanKind.CONSUMER)
+    @Timed(value = "metadataEventListener.handleEntityCreatedEvent", description = "Time taken to handle entity created event", histogram = true)
+    @Counted(value = "metadataEventListener.handleEntityCreatedEvent.count", description = "Number of entity created events handled")
     public void handleEntityCreatedEvent(EntityCreatedEvent<AdministrativeMetadata> event) {
         AdministrativeMetadata entity = event.getEntity();
         log.debug("Handling EntityCreatedEvent for entity: {}", entity);
@@ -97,6 +101,8 @@ public class MetadataEventListener {
     @EventListener(classes = {EntityUpdatedEvent.class})
     @Transactional
     @WithSpan(kind = SpanKind.CONSUMER)
+    @Timed(value = "metadataEventListener.handleEntityUpdatedEvent", description = "Time taken to handle entity updated event", histogram = true)
+    @Counted(value = "metadataEventListener.handleEntityUpdatedEvent.count", description = "Number of entity updated events handled")
     public void handleEntityUpdatedEvent(EntityUpdatedEvent<AdministrativeMetadata> event) {
         AdministrativeMetadata entity = event.getEntity();
         log.debug("Handling EntityUpdatedEvent for entity: {}", entity);
@@ -125,6 +131,8 @@ public class MetadataEventListener {
     @EventListener(classes = {EntityDeletedEvent.class})
     @Transactional
     @WithSpan(kind = SpanKind.CONSUMER)
+    @Timed(value = "metadataEventListener.handleEntityDeletedEvent", description = "Time taken to handle entity deleted event", histogram = true)
+    @Counted(value = "metadataEventListener.handleEntityDeletedEvent.count", description = "Number of entity deleted events handled")
     public void handleEntityDeletedEvent(EntityDeletedEvent<AdministrativeMetadata> event) {
         AdministrativeMetadata entity = event.getEntity();
         log.debug("Handling EntityDeletedEvent for entity: {}", entity);

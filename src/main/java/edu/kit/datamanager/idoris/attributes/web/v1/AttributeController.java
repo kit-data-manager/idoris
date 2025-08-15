@@ -22,6 +22,12 @@ import edu.kit.datamanager.idoris.attributes.web.api.IAttributeApi;
 import edu.kit.datamanager.idoris.attributes.web.hateoas.AttributeModelAssembler;
 import edu.kit.datamanager.idoris.datatypes.entities.DataType;
 import edu.kit.datamanager.idoris.datatypes.web.hateoas.DataTypeModelAssembler;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpStatus;
@@ -41,6 +47,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
  */
 @RestController
 @RequestMapping("/v1/attributes")
+@Observed(contextualName = "attributeController")
 public class AttributeController implements IAttributeApi {
 
     private final AttributeService attributeService;
@@ -57,6 +64,9 @@ public class AttributeController implements IAttributeApi {
      * {@inheritDoc}
      */
     @Override
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "attributeController.getAllAttributes", description = "Time taken to get all attributes", histogram = true)
+    @Counted(value = "attributeController.getAllAttributes.count", description = "Number of get all attributes requests")
     public ResponseEntity<CollectionModel<EntityModel<Attribute>>> getAllAttributes() {
         List<EntityModel<Attribute>> attributes = attributeService.getAllAttributes().stream()
                 .map(attributeModelAssembler::toModel)
@@ -74,7 +84,10 @@ public class AttributeController implements IAttributeApi {
      * {@inheritDoc}
      */
     @Override
-    public ResponseEntity<EntityModel<Attribute>> getAttribute(String pid) {
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "attributeController.getAttribute", description = "Time taken to get an attribute", histogram = true)
+    @Counted(value = "attributeController.getAttribute.count", description = "Number of get attribute requests")
+    public ResponseEntity<EntityModel<Attribute>> getAttribute(@SpanAttribute String pid) {
         return attributeService.getAttribute(pid)
                 .map(attributeModelAssembler::toModel)
                 .map(ResponseEntity::ok)
@@ -85,7 +98,10 @@ public class AttributeController implements IAttributeApi {
      * {@inheritDoc}
      */
     @Override
-    public ResponseEntity<EntityModel<DataType>> getDataType(String pid) {
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "attributeController.getDataType", description = "Time taken to get a data type", histogram = true)
+    @Counted(value = "attributeController.getDataType.count", description = "Number of get data type requests")
+    public ResponseEntity<EntityModel<DataType>> getDataType(@SpanAttribute String pid) {
         return attributeService.getAttribute(pid)
                 .map(Attribute::getDataType)
                 .map(dataTypeModelAssembler::toModel)
@@ -97,7 +113,10 @@ public class AttributeController implements IAttributeApi {
      * {@inheritDoc}
      */
     @Override
-    public ResponseEntity<EntityModel<Attribute>> createAttribute(Attribute attribute) {
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "attributeController.createAttribute", description = "Time taken to create an attribute", histogram = true)
+    @Counted(value = "attributeController.createAttribute.count", description = "Number of create attribute requests")
+    public ResponseEntity<EntityModel<Attribute>> createAttribute(@SpanAttribute Attribute attribute) {
         Attribute createdAttribute = attributeService.createAttribute(attribute);
         EntityModel<Attribute> entityModel = attributeModelAssembler.toModel(createdAttribute);
         return ResponseEntity.status(HttpStatus.CREATED).body(entityModel);
@@ -107,7 +126,10 @@ public class AttributeController implements IAttributeApi {
      * {@inheritDoc}
      */
     @Override
-    public ResponseEntity<EntityModel<Attribute>> updateAttribute(String id, Attribute attribute) {
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "attributeController.updateAttribute", description = "Time taken to update an attribute", histogram = true)
+    @Counted(value = "attributeController.updateAttribute.count", description = "Number of update attribute requests")
+    public ResponseEntity<EntityModel<Attribute>> updateAttribute(@SpanAttribute String id, @SpanAttribute Attribute attribute) {
         // Check if the entity exists
         if (attributeService.getAttribute(id).isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -131,7 +153,10 @@ public class AttributeController implements IAttributeApi {
      * {@inheritDoc}
      */
     @Override
-    public ResponseEntity<Void> deleteAttribute(String pid) {
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "attributeController.deleteAttribute", description = "Time taken to delete an attribute", histogram = true)
+    @Counted(value = "attributeController.deleteAttribute.count", description = "Number of delete attribute requests")
+    public ResponseEntity<Void> deleteAttribute(@SpanAttribute String pid) {
         if (attributeService.getAttribute(pid).isEmpty()) {
             return ResponseEntity.notFound().build();
         }
@@ -144,6 +169,9 @@ public class AttributeController implements IAttributeApi {
      * {@inheritDoc}
      */
     @Override
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "attributeController.deleteOrphanedAttributes", description = "Time taken to delete orphaned attributes", histogram = true)
+    @Counted(value = "attributeController.deleteOrphanedAttributes.count", description = "Number of delete orphaned attributes requests")
     public ResponseEntity<Void> deleteOrphanedAttributes() {
         attributeService.deleteOrphanedAttributes();
         return ResponseEntity.noContent().build();
@@ -153,7 +181,10 @@ public class AttributeController implements IAttributeApi {
      * {@inheritDoc}
      */
     @Override
-    public ResponseEntity<EntityModel<Attribute>> patchAttribute(String pid, Attribute attributePatch) {
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "attributeController.patchAttribute", description = "Time taken to patch an attribute", histogram = true)
+    @Counted(value = "attributeController.patchAttribute.count", description = "Number of patch attribute requests")
+    public ResponseEntity<EntityModel<Attribute>> patchAttribute(@SpanAttribute String pid, @SpanAttribute Attribute attributePatch) {
         if (attributeService.getAttribute(pid).isEmpty()) {
             return ResponseEntity.notFound().build();
         }

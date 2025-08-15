@@ -28,6 +28,7 @@ import io.micrometer.observation.annotation.Observed;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -102,7 +103,14 @@ public class PersistentIdentifierService {
         PIDRecord record = mapper.toPIDRecord(tempPid);
 
         // Create the PID record in the Typed PID Maker service
-        PIDRecord createdRecord = client.createPIDRecord(record);
+        ResponseEntity<PIDRecord> createdResponse = client.createPIDRecord(record);
+
+        if (!createdResponse.getStatusCode().is2xxSuccessful()) {
+            log.error("Failed to create PID record in Typed PID Maker service: {}", createdResponse.getStatusCode());
+            throw new RuntimeException("Failed to create PID record in Typed PID Maker service");
+        }
+        String etag = createdResponse.getHeaders().getETag();
+        PIDRecord createdRecord = createdResponse.getBody();
 
         log.debug("Created first PID record: {}", createdRecord);
 
@@ -126,32 +134,16 @@ public class PersistentIdentifierService {
         PIDRecord updatedRecord = new PIDRecord(createdRecord.pid(), entries);
         // Update the PID record in the Typed PID Maker service with the saved PID
         log.debug("Updating PID record with saved PID: {}", updatedRecord);
-        client.updatePIDRecord(savedPid.getPid(), updatedRecord);
+
+        ResponseEntity<PIDRecord> updatedResponse = client.updatePIDRecord(savedPid.getPid(), updatedRecord, etag);
+
+        if (!updatedResponse.getStatusCode().is2xxSuccessful()) {
+            log.error("Failed to update PID record in Typed PID Maker service: {}", updatedResponse.getStatusCode());
+            throw new RuntimeException("Failed to update PID record in Typed PID Maker service");
+        }
 
         log.info("Created PersistentIdentifier: {} with record", savedPid);
         return savedPid;
-    }
-
-    /**
-     * Updates the PID record for the given PersistentIdentifier.
-     * This method updates the PID record in the Typed PID Maker service with the latest metadata from the entity.
-     *
-     * @param pid The PersistentIdentifier to update the PID record for
-     * @return The updated PersistentIdentifier
-     */
-    @Transactional
-    @WithSpan
-    public PersistentIdentifier updatePIDRecord(PersistentIdentifier pid) {
-        log.debug("Updating PID record for PersistentIdentifier: {}", pid);
-
-        // Create a PID record with metadata from the entity
-        PIDRecord record = mapper.toPIDRecord(pid);
-
-        // Update the PID record in the Typed PID Maker service
-        client.updatePIDRecord(pid.getPid(), record);
-
-        log.info("Updated PID record for PersistentIdentifier: {}", pid);
-        return pid;
     }
 
     /**
@@ -186,6 +178,47 @@ public class PersistentIdentifierService {
 
         log.info("Marked PersistentIdentifier as tombstone: {}", savedPid);
         return Optional.of(savedPid);
+    }
+
+    /**
+     * Updates the PID record for the given PersistentIdentifier.
+     * This method updates the PID record in the Typed PID Maker service with the latest metadata from the entity.
+     *
+     * @param pid The PersistentIdentifier to update the PID record for
+     * @return The updated PersistentIdentifier
+     */
+    @Transactional
+    @WithSpan
+    public PersistentIdentifier updatePIDRecord(PersistentIdentifier pid) {
+        log.debug("Updating PID record for PersistentIdentifier: {}", pid);
+
+        // Create a PID record with metadata from the entity
+        PIDRecord record = mapper.toPIDRecord(pid);
+
+        // If the PID is null, it means the PID has not been created yet
+        ResponseEntity<PIDRecord> getResponse = client.getPIDRecord(pid.getPid());
+
+        if (!getResponse.getStatusCode().is2xxSuccessful()) {
+            log.error("Failed to retrieve PID record from Typed PID Maker service: {}", getResponse.getStatusCode());
+            throw new RuntimeException("Failed to retrieve PID record from Typed PID Maker service");
+        }
+
+        // Ensure the record is not null and has the correct PID
+        if (record == null || !record.pid().equals(pid.getPid()) || !record.pid().equals(Objects.requireNonNull(getResponse.getBody()).pid())) {
+            log.error("PID record is null or PID does not match: expected {}, got {}", pid.getPid(), record != null ? record.pid() : "null");
+            throw new RuntimeException("PID record is null or PID does not match");
+        }
+
+        // Update the PID record in the Typed PID Maker service
+        ResponseEntity<PIDRecord> updatedResponse = client.updatePIDRecord(record.pid(), record, getResponse.getHeaders().getETag());
+
+        if (!updatedResponse.getStatusCode().is2xxSuccessful()) {
+            log.error("Failed to update PID record in Typed PID Maker service: {}", updatedResponse.getStatusCode());
+            throw new RuntimeException("Failed to update PID record in Typed PID Maker service");
+        }
+
+        log.info("Updated PID record for PersistentIdentifier: {}", pid);
+        return pid;
     }
 
     /**

@@ -75,6 +75,7 @@ ext {
     openTelemetryVersion = "1.49.0"
     openTelemetryInstrumentationVersion = "2.16.0"
     logbackVersion = "1.5.13"
+    pyroscopeVersion = "0.13.0"
     set("snippetsDir", file("build/generated-snippets"))
     set('springModulithVersion', "1.4.1")
 }
@@ -112,9 +113,13 @@ dependencies {
 
 
     /* Observability */
+    implementation(platform("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:2.18.0"))
     implementation "io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter"
     implementation 'io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations'
+    implementation "io.opentelemetry.contrib:opentelemetry-samplers:1.47.0-alpha"
     implementation "org.springframework.boot:spring-boot-starter-aop"
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
 
     /* Development helpers */
     implementation "org.springframework.boot:spring-boot-configuration-processor"

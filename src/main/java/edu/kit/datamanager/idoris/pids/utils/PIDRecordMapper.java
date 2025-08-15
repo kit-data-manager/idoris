@@ -130,7 +130,7 @@ public class PIDRecordMapper {
         // Add version information
         Long version = entity.getVersion();
         if (version != null) {
-            recordEntries.add(new PIDRecordEntry("21.T11148/c692273deb2772da307f", version.toString()));
+            recordEntries.add(new PIDRecordEntry("21.T11148/c692273deb2772da307f", "v" + version));
         }
 
         // Add contributors

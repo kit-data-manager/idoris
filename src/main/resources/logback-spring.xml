@@ -22,16 +22,19 @@
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>
-                %d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
+                %d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} [trace_id=%X{trace_id:-}, span_id=%X{span_id:-}] -
+                %msg%n
             </pattern>
         </encoder>
     </appender>
     <appender name="OpenTelemetry"
               class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
         <captureExperimentalAttributes>true</captureExperimentalAttributes>
-        <captureMdcAttributes>*</captureMdcAttributes>
         <captureCodeAttributes>true</captureCodeAttributes>
         <captureMarkerAttribute>true</captureMarkerAttribute>
+        <captureKeyValuePairAttributes>true</captureKeyValuePairAttributes>
+        <captureLoggerContext>true</captureLoggerContext>
+        <captureMdcAttributes>*</captureMdcAttributes>
     </appender>
 
     <root level="DEBUG">

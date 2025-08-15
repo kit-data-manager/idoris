@@ -17,6 +17,9 @@
 package edu.kit.datamanager.idoris.datatypes.web.api;
 
 import edu.kit.datamanager.idoris.datatypes.entities.AtomicDataType;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -33,6 +36,7 @@ import org.springframework.web.bind.annotation.*;
  * This interface defines the REST API for managing AtomicDataType entities.
  */
 @Tag(name = "AtomicDataType", description = "API for managing AtomicDataTypes")
+@Observed
 public interface IAtomicDataTypeApi {
 
     /**
@@ -50,6 +54,7 @@ public interface IAtomicDataTypeApi {
                                     schema = @Schema(implementation = AtomicDataType.class)))
             }
     )
+    @WithSpan
     ResponseEntity<CollectionModel<EntityModel<AtomicDataType>>> getAllAtomicDataTypes();
 
     /**
@@ -69,7 +74,9 @@ public interface IAtomicDataTypeApi {
                     @ApiResponse(responseCode = "404", description = "AtomicDataType not found")
             }
     )
+    @WithSpan
     ResponseEntity<EntityModel<AtomicDataType>> getAtomicDataType(
+            @SpanAttribute("atomicDataType.id")
             @Parameter(description = "PID or internal ID of the AtomicDataType", required = true)
             @PathVariable String id);
 
@@ -91,7 +98,9 @@ public interface IAtomicDataTypeApi {
                     @ApiResponse(responseCode = "400", description = "Invalid input or validation failed")
             }
     )
+    @WithSpan
     ResponseEntity<EntityModel<AtomicDataType>> createAtomicDataType(
+
             @Parameter(description = "AtomicDataType to create", required = true)
             @Valid @RequestBody AtomicDataType atomicDataType);
 
@@ -115,9 +124,12 @@ public interface IAtomicDataTypeApi {
                     @ApiResponse(responseCode = "404", description = "AtomicDataType not found")
             }
     )
+    @WithSpan
     ResponseEntity<EntityModel<AtomicDataType>> updateAtomicDataType(
+            @SpanAttribute("atomicDataType.id")
             @Parameter(description = "PID or internal ID of the AtomicDataType", required = true)
             @PathVariable String id,
+
             @Parameter(description = "Updated AtomicDataType", required = true)
             @Valid @RequestBody AtomicDataType atomicDataType);
 
@@ -136,7 +148,9 @@ public interface IAtomicDataTypeApi {
                     @ApiResponse(responseCode = "404", description = "AtomicDataType not found")
             }
     )
+    @WithSpan
     ResponseEntity<Void> deleteAtomicDataType(
+            @SpanAttribute("atomicDataType.id")
             @Parameter(description = "PID or internal ID of the AtomicDataType", required = true)
             @PathVariable String id);
 
@@ -157,7 +171,9 @@ public interface IAtomicDataTypeApi {
                     @ApiResponse(responseCode = "404", description = "AtomicDataType not found")
             }
     )
+    @WithSpan
     ResponseEntity<CollectionModel<EntityModel<edu.kit.datamanager.idoris.operations.entities.Operation>>> getOperationsForAtomicDataType(
+            @SpanAttribute("atomicDataType.id")
             @Parameter(description = "PID or internal ID of the AtomicDataType", required = true)
             @PathVariable String id);
 
@@ -180,7 +196,9 @@ public interface IAtomicDataTypeApi {
                     @ApiResponse(responseCode = "404", description = "AtomicDataType not found")
             }
     )
+    @WithSpan
     ResponseEntity<EntityModel<AtomicDataType>> patchAtomicDataType(
+            @SpanAttribute
             @Parameter(description = "PID or internal ID of the AtomicDataType", required = true)
             @PathVariable String id,
             @Parameter(description = "Partial AtomicDataType with fields to update", required = true)

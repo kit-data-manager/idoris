@@ -1,0 +1,80 @@
+# Mimir configuration file
+
+# Common configuration
+common:
+  storage:
+    backend: filesystem
+    filesystem:
+      dir: /data/common
+
+# Server configuration
+server:
+  http_listen_port: 9009
+  grpc_listen_port: 9095
+
+# Distributor configuration
+distributor:
+  ring:
+    kvstore:
+      store: inmemory
+
+# Ingester configuration
+ingester:
+  ring:
+    kvstore:
+      store: inmemory
+    replication_factor: 1
+    final_sleep: 0s
+  instance_limits:
+    max_series: 1000000
+    max_tenants: 1000
+
+# Block storage configuration
+blocks_storage:
+  backend: filesystem
+  filesystem:
+    dir: /data/blocks
+  tsdb:
+    dir: /data/tsdb
+  bucket_store:
+    sync_dir: /data/tsdb-sync
+
+# Compactor configuration
+compactor:
+  data_dir: /data/compactor
+  sharding_ring:
+    kvstore:
+      store: inmemory
+
+# Query frontend configuration
+frontend:
+  cache_results: false
+
+# Query scheduler configuration
+query_scheduler:
+  max_outstanding_requests_per_tenant: 100
+
+# Store gateway configuration
+store_gateway:
+  sharding_ring:
+    replication_factor: 1
+    kvstore:
+      store: inmemory
+
+# Limits configuration
+limits:
+  max_label_names_per_series: 30
+  max_label_name_length: 1024
+  max_label_value_length: 2048
+  out_of_order_time_window: 0s
+  ingestion_rate: 10000
+  ingestion_burst_size: 20000
+
+# Ruler configuration
+ruler:
+  rule_path: /data/rules
+  alertmanager_url: http://localhost:9093
+  ring:
+    kvstore:
+      store: inmemory
+  enable_api: true

@@ -53,7 +53,8 @@ import static edu.kit.datamanager.idoris.rules.logic.OutputMessage.MessageSeveri
         },
         name = "SyntaxValidationRule",
         description = "Validates that entities follow required syntax rules and constraints",
-        tasks = {RuleTask.VALIDATE}
+        tasks = {RuleTask.VALIDATE},
+        executeBefore = {InheritanceValidator.class}
 )
 public class SyntaxValidator extends ValidationVisitor {
 

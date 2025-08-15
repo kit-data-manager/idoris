@@ -20,6 +20,12 @@ import edu.kit.datamanager.idoris.datatypes.dao.ITypeProfileDao;
 import edu.kit.datamanager.idoris.datatypes.entities.TypeProfile;
 import edu.kit.datamanager.idoris.rules.validation.ValidationPolicyValidator;
 import edu.kit.datamanager.idoris.rules.validation.ValidationResult;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +40,7 @@ import java.util.Optional;
  */
 @Service
 @Slf4j
+@Observed(contextualName = "typeProfileService")
 public class TypeProfileService {
     private final ITypeProfileDao typeProfileDao;
     private final EventPublisherService eventPublisher;
@@ -56,7 +63,10 @@ public class TypeProfileService {
      * @return the created TypeProfile entity
      */
     @Transactional
-    public TypeProfile createTypeProfile(TypeProfile typeProfile) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "typeProfileService.createTypeProfile", description = "Time taken to create a type profile", histogram = true)
+    @Counted(value = "typeProfileService.createTypeProfile.count", description = "Number of type profile creations")
+    public TypeProfile createTypeProfile(@SpanAttribute TypeProfile typeProfile) {
         log.debug("Creating TypeProfile: {}", typeProfile);
         TypeProfile saved = typeProfileDao.save(typeProfile);
         eventPublisher.publishEntityCreated(saved);
@@ -72,7 +82,10 @@ public class TypeProfileService {
      * @throws IllegalArgumentException if the TypeProfile does not exist
      */
     @Transactional
-    public TypeProfile updateTypeProfile(TypeProfile typeProfile) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "typeProfileService.updateTypeProfile", description = "Time taken to update a type profile", histogram = true)
+    @Counted(value = "typeProfileService.updateTypeProfile.count", description = "Number of type profile updates")
+    public TypeProfile updateTypeProfile(@SpanAttribute TypeProfile typeProfile) {
         log.debug("Updating TypeProfile: {}", typeProfile);
         if (typeProfile.getId() == null || typeProfile.getId().isEmpty()) {
             throw new IllegalArgumentException("TypeProfile must have a PID to be updated");
@@ -94,7 +107,10 @@ public class TypeProfileService {
      * @throws IllegalArgumentException if the TypeProfile does not exist
      */
     @Transactional
-    public void deleteTypeProfile(String id) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "typeProfileService.deleteTypeProfile", description = "Time taken to delete a type profile", histogram = true)
+    @Counted(value = "typeProfileService.deleteTypeProfile.count", description = "Number of type profile deletions")
+    public void deleteTypeProfile(@SpanAttribute String id) {
         log.debug("Deleting TypeProfile with ID: {}", id);
 
         TypeProfile typeProfile = typeProfileDao.findById(id)
@@ -112,7 +128,10 @@ public class TypeProfileService {
      * @return an Optional containing the TypeProfile, or empty if not found
      */
     @Transactional(readOnly = true)
-    public Optional<TypeProfile> getTypeProfile(String id) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "typeProfileService.getTypeProfile", description = "Time taken to get a type profile", histogram = true)
+    @Counted(value = "typeProfileService.getTypeProfile.count", description = "Number of type profile retrievals")
+    public Optional<TypeProfile> getTypeProfile(@SpanAttribute String id) {
         log.debug("Retrieving TypeProfile with ID: {}", id);
         return typeProfileDao.findById(id);
     }
@@ -123,6 +142,9 @@ public class TypeProfileService {
      * @return a list of all TypeProfile entities
      */
     @Transactional(readOnly = true)
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "typeProfileService.getAllTypeProfiles", description = "Time taken to get all type profiles", histogram = true)
+    @Counted(value = "typeProfileService.getAllTypeProfiles.count", description = "Number of get all type profiles requests")
     public List<TypeProfile> getAllTypeProfiles() {
         log.debug("Retrieving all TypeProfiles");
         return typeProfileDao.findAll();
@@ -136,7 +158,10 @@ public class TypeProfileService {
      * @throws IllegalArgumentException if the TypeProfile does not exist
      */
     @Transactional(readOnly = true)
-    public ValidationResult validateTypeProfile(String id) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "typeProfileService.validateTypeProfile", description = "Time taken to validate a type profile", histogram = true)
+    @Counted(value = "typeProfileService.validateTypeProfile.count", description = "Number of type profile validations")
+    public ValidationResult validateTypeProfile(@SpanAttribute String id) {
         log.debug("Validating TypeProfile with ID: {}", id);
 
         TypeProfile typeProfile = typeProfileDao.findById(id)
@@ -154,7 +179,10 @@ public class TypeProfileService {
      * @throws IllegalArgumentException if the TypeProfile does not exist
      */
     @Transactional(readOnly = true)
-    public Iterable<TypeProfile> getInheritanceChain(String id) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "typeProfileService.getInheritanceChain", description = "Time taken to get inheritance chain", histogram = true)
+    @Counted(value = "typeProfileService.getInheritanceChain.count", description = "Number of inheritance chain retrievals")
+    public Iterable<TypeProfile> getInheritanceChain(@SpanAttribute String id) {
         log.debug("Retrieving inheritance chain for TypeProfile with ID: {}", id);
 
         TypeProfile typeProfile = typeProfileDao.findById(id)
@@ -172,7 +200,10 @@ public class TypeProfileService {
      * @throws IllegalArgumentException if the TypeProfile does not exist
      */
     @Transactional
-    public TypeProfile patchTypeProfile(String id, TypeProfile typeProfilePatch) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "typeProfileService.patchTypeProfile", description = "Time taken to patch a type profile", histogram = true)
+    @Counted(value = "typeProfileService.patchTypeProfile.count", description = "Number of type profile patches")
+    public TypeProfile patchTypeProfile(@SpanAttribute String id, @SpanAttribute TypeProfile typeProfilePatch) {
         log.debug("Patching TypeProfile with ID: {}, patch: {}", id, typeProfilePatch);
         if (id == null || id.isEmpty()) {
             throw new IllegalArgumentException("TypeProfile ID cannot be null or empty");

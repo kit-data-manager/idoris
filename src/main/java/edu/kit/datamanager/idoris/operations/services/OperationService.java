@@ -19,6 +19,12 @@ package edu.kit.datamanager.idoris.operations.services;
 import edu.kit.datamanager.idoris.core.events.EventPublisherService;
 import edu.kit.datamanager.idoris.operations.dao.IOperationDao;
 import edu.kit.datamanager.idoris.operations.entities.Operation;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +39,7 @@ import java.util.Optional;
  */
 @Service
 @Slf4j
+@Observed(contextualName = "operationService")
 public class OperationService {
     private final IOperationDao operationDao;
     private final EventPublisherService eventPublisher;
@@ -55,7 +62,10 @@ public class OperationService {
      * @return the created Operation entity
      */
     @Transactional
-    public Operation createOperation(Operation operation) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "operationService.createOperation", description = "Time taken to create an operation", histogram = true)
+    @Counted(value = "operationService.createOperation.count", description = "Number of operation creations")
+    public Operation createOperation(@SpanAttribute Operation operation) {
         log.debug("Creating Operation: {}", operation);
         Operation saved = operationDao.save(operation);
         eventPublisher.publishEntityCreated(saved);
@@ -71,7 +81,10 @@ public class OperationService {
      * @throws IllegalArgumentException if the Operation does not exist
      */
     @Transactional
-    public Operation updateOperation(Operation operation) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "operationService.updateOperation", description = "Time taken to update an operation", histogram = true)
+    @Counted(value = "operationService.updateOperation.count", description = "Number of operation updates")
+    public Operation updateOperation(@SpanAttribute Operation operation) {
         log.debug("Updating Operation: {}", operation);
 
         if (operation.getId() == null || operation.getId().isEmpty()) {
@@ -97,7 +110,10 @@ public class OperationService {
      * @throws IllegalArgumentException if the Operation does not exist
      */
     @Transactional
-    public void deleteOperation(String id) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "operationService.deleteOperation", description = "Time taken to delete an operation", histogram = true)
+    @Counted(value = "operationService.deleteOperation.count", description = "Number of operation deletions")
+    public void deleteOperation(@SpanAttribute String id) {
         log.debug("Deleting Operation with ID: {}", id);
 
         Operation operation = operationDao.findById(id)
@@ -115,7 +131,10 @@ public class OperationService {
      * @return an Optional containing the Operation, or empty if not found
      */
     @Transactional(readOnly = true)
-    public Optional<Operation> getOperation(String id) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "operationService.getOperation", description = "Time taken to get an operation", histogram = true)
+    @Counted(value = "operationService.getOperation.count", description = "Number of operation retrievals")
+    public Optional<Operation> getOperation(@SpanAttribute String id) {
         log.debug("Retrieving Operation with ID: {}", id);
         return operationDao.findById(id);
     }
@@ -126,6 +145,9 @@ public class OperationService {
      * @return a list of all Operation entities
      */
     @Transactional(readOnly = true)
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "operationService.getAllOperations", description = "Time taken to get all operations", histogram = true)
+    @Counted(value = "operationService.getAllOperations.count", description = "Number of get all operations requests")
     public List<Operation> getAllOperations() {
         log.debug("Retrieving all Operations");
         return operationDao.findAll();
@@ -138,7 +160,10 @@ public class OperationService {
      * @return an iterable of Operations for the DataType
      */
     @Transactional(readOnly = true)
-    public Iterable<Operation> getOperationsForDataType(String dataTypeId) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "operationService.getOperationsForDataType", description = "Time taken to get operations for data type", histogram = true)
+    @Counted(value = "operationService.getOperationsForDataType.count", description = "Number of get operations for data type requests")
+    public Iterable<Operation> getOperationsForDataType(@SpanAttribute String dataTypeId) {
         log.debug("Retrieving Operations for DataType with ID: {}", dataTypeId);
         return operationDao.getOperationsForDataType(dataTypeId);
     }
@@ -152,7 +177,10 @@ public class OperationService {
      * @throws IllegalArgumentException if the Operation does not exist
      */
     @Transactional
-    public Operation patchOperation(String id, Operation operationPatch) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "operationService.patchOperation", description = "Time taken to patch an operation", histogram = true)
+    @Counted(value = "operationService.patchOperation.count", description = "Number of operation patches")
+    public Operation patchOperation(@SpanAttribute String id, @SpanAttribute Operation operationPatch) {
         log.debug("Patching Operation with ID: {}, patch: {}", id, operationPatch);
         if (id == null || id.isEmpty()) {
             throw new IllegalArgumentException("Operation ID cannot be null or empty");

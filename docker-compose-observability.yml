@@ -21,6 +21,22 @@ services:
     networks:
       - observability-network
 
+  # Mimir for scalable metrics storage
+  mimir:
+    image: grafana/mimir:latest
+    container_name: mimir
+    ports:
+      - "9009:9009"  # HTTP API
+      - "9095:9095"  # gRPC API
+      - "9093:9093"  # Alertmanager API
+    volumes:
+      #      - ./observability/mimir/mimir-config.yaml:/etc/mimir/config.yaml
+      - mimir_data:/data
+    #    command: [ "-config.file=/etc/mimir/config.yaml" ]
+    restart: unless-stopped
+    networks:
+      - observability-network
+
   # Loki for log aggregation
   loki:
     image: grafana/loki:latest
@@ -43,7 +59,7 @@ services:
       - ./observability/alloy/alloy-config.alloy:/etc/alloy/config.alloy
       - /var/log:/var/log
       - ./logs:/logs
-      - ./observability/alloy_data:/var/lib/alloy/data
+      - ./observability/alloy/alloy_data:/var/lib/alloy/data
     command: [ "run", "--storage.path=/var/lib/alloy/data", "--server.http.listen-addr=0.0.0.0:12345", "/etc/alloy/config.alloy" ]
     restart: unless-stopped
     ports:
@@ -74,6 +90,20 @@ services:
     networks:
       - observability-network
 
+  # Pyroscope for continuous profiling
+  pyroscope:
+    image: grafana/pyroscope:latest
+    container_name: pyroscope
+    ports:
+      - "4040:4040"  # HTTP API and UI
+    volumes:
+      #      - ./observability/pyroscope/pyroscope-config.yaml:/etc/pyroscope/config.yaml
+      - pyroscope_data:/data
+    #    command: [ "-config.file=/etc/pyroscope/config.yaml" ]
+    restart: unless-stopped
+    networks:
+      - observability-network
+
   # Grafana for visualization
   grafana:
     image: grafana/grafana:latest
@@ -92,15 +122,19 @@ services:
     restart: unless-stopped
     depends_on:
       - prometheus
+      - mimir
       - loki
       - tempo
+      - pyroscope
     networks:
       - observability-network
 
 volumes:
   prometheus_data:
+  mimir_data:
   loki_data:
   tempo_data:
+  pyroscope_data:
   grafana_data:
 
 networks:

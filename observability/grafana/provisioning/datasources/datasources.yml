@@ -7,12 +7,23 @@ datasources:
     url: http://prometheus:9090
     isDefault: true
     editable: true
+    uid: prometheus
+
+  - name: Mimir
+    type: prometheus
+    access: proxy
+    url: http://mimir:9009
+    editable: true
+    uid: mimir
+    jsonData:
+      timeInterval: "15s"
 
   - name: Loki
     type: loki
     access: proxy
     url: http://loki:3100
     editable: true
+    uid: loki
     jsonData:
       derivedFields:
         - name: "traceID"
@@ -28,14 +39,27 @@ datasources:
     uid: tempo
     jsonData:
       httpMethod: GET
+      tracesToMetrics:
+        enabled: true
+        datasourceUid: 'prometheus'
+      tracesToProfiles:
+        enabled: true
+        datasourceUid: 'pyroscope'
       tracesToLogs:
-        datasourceUid: 'Loki'
-        tags: [ 'job', 'instance', 'pod', 'namespace' ]
+        datasourceUid: 'loki'
+        #        tags: [ 'job', 'instance', 'pod', 'namespace' ]
         mappedTags: [ { key: 'service.name', value: 'service' } ]
         mapTagNamesEnabled: false
         spanStartTimeShift: '1h'
         spanEndTimeShift: '1h'
-        filterByTraceID: true
-        filterBySpanID: false
       serviceMap:
-        datasourceUid: 'Prometheus'
+        datasourceUid: 'prometheus'
+
+  - name: Pyroscope
+    type: grafana-pyroscope-datasource
+    access: proxy
+    url: http://pyroscope:4040
+    editable: true
+    uid: pyroscope
+    jsonData:
+      httpMethod: GET

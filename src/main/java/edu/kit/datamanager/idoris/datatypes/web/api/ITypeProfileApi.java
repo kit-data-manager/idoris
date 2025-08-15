@@ -20,6 +20,7 @@ import edu.kit.datamanager.idoris.attributes.entities.Attribute;
 import edu.kit.datamanager.idoris.datatypes.entities.TypeProfile;
 import edu.kit.datamanager.idoris.datatypes.web.v1.TypeProfileController.TypeProfileInheritance;
 import edu.kit.datamanager.idoris.operations.entities.Operation;
+import io.micrometer.observation.annotation.Observed;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -37,6 +38,7 @@ import org.springframework.web.bind.annotation.*;
  * This interface defines the REST API for managing TypeProfile entities.
  */
 @Tag(name = "TypeProfile", description = "API for managing TypeProfiles")
+@Observed
 public interface ITypeProfileApi {
 
     /**

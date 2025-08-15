@@ -19,6 +19,12 @@ package edu.kit.datamanager.idoris.attributes.services;
 import edu.kit.datamanager.idoris.attributes.dao.IAttributeDao;
 import edu.kit.datamanager.idoris.attributes.entities.Attribute;
 import edu.kit.datamanager.idoris.core.events.EventPublisherService;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +39,7 @@ import java.util.Optional;
  */
 @Service
 @Slf4j
+@Observed(contextualName = "attributeService")
 public class AttributeService {
     private final IAttributeDao attributeDao;
     private final EventPublisherService eventPublisher;
@@ -55,6 +62,9 @@ public class AttributeService {
      * @return the created Attribute entity
      */
     @Transactional
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "attributeService.createAttribute", description = "Time taken to create an attribute", histogram = true)
+    @Counted(value = "attributeService.createAttribute.count", description = "Number of attribute creations")
     public Attribute createAttribute(Attribute attribute) {
         log.debug("Creating Attribute: {}", attribute);
         Attribute saved = attributeDao.save(attribute);
@@ -71,6 +81,9 @@ public class AttributeService {
      * @throws IllegalArgumentException if the Attribute does not exist
      */
     @Transactional
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "attributeService.updateAttribute", description = "Time taken to update an attribute", histogram = true)
+    @Counted(value = "attributeService.updateAttribute.count", description = "Number of attribute updates")
     public Attribute updateAttribute(Attribute attribute) {
         log.debug("Updating Attribute: {}", attribute);
 
@@ -97,7 +110,10 @@ public class AttributeService {
      * @throws IllegalArgumentException if the Attribute does not exist
      */
     @Transactional
-    public void deleteAttribute(String id) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "attributeService.deleteAttribute", description = "Time taken to delete an attribute", histogram = true)
+    @Counted(value = "attributeService.deleteAttribute.count", description = "Number of attribute deletions")
+    public void deleteAttribute(@SpanAttribute("attribute.id") String id) {
         log.debug("Deleting Attribute with ID: {}", id);
 
         Attribute attribute = attributeDao.findById(id)
@@ -115,7 +131,10 @@ public class AttributeService {
      * @return an Optional containing the Attribute, or empty if not found
      */
     @Transactional(readOnly = true)
-    public Optional<Attribute> getAttribute(String id) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "attributeService.getAttribute", description = "Time taken to get an attribute", histogram = true)
+    @Counted(value = "attributeService.getAttribute.count", description = "Number of attribute retrievals")
+    public Optional<Attribute> getAttribute(@SpanAttribute("attribute.id") String id) {
         log.debug("Retrieving Attribute with ID: {}", id);
         return attributeDao.findById(id);
     }
@@ -126,6 +145,9 @@ public class AttributeService {
      * @return a list of all Attribute entities
      */
     @Transactional(readOnly = true)
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "attributeService.getAllAttributes", description = "Time taken to get all attributes", histogram = true)
+    @Counted(value = "attributeService.getAllAttributes.count", description = "Number of get all attributes requests")
     public List<Attribute> getAllAttributes() {
         log.debug("Retrieving all Attributes");
         return attributeDao.findAll();
@@ -136,6 +158,9 @@ public class AttributeService {
      * An orphaned Attribute is one that has a dataType relationship but is not referenced by any other node.
      */
     @Transactional
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "attributeService.deleteOrphanedAttributes", description = "Time taken to delete orphaned attributes", histogram = true)
+    @Counted(value = "attributeService.deleteOrphanedAttributes.count", description = "Number of delete orphaned attributes requests")
     public void deleteOrphanedAttributes() {
         log.debug("Deleting orphaned Attributes");
         attributeDao.deleteOrphanedAttributes();
@@ -151,7 +176,10 @@ public class AttributeService {
      * @throws IllegalArgumentException if the Attribute does not exist
      */
     @Transactional
-    public Attribute patchAttribute(String id, Attribute attributePatch) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "attributeService.patchAttribute", description = "Time taken to patch an attribute", histogram = true)
+    @Counted(value = "attributeService.patchAttribute.count", description = "Number of attribute patches")
+    public Attribute patchAttribute(@SpanAttribute("attribute.id") String id, Attribute attributePatch) {
         log.debug("Patching Attribute with ID: {}, patch: {}", id, attributePatch);
         if (id == null || id.isEmpty()) {
             throw new IllegalArgumentException("Attribute ID cannot be null or empty");

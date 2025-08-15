@@ -27,6 +27,12 @@ import edu.kit.datamanager.idoris.operations.services.OperationService;
 import edu.kit.datamanager.idoris.rules.logic.RuleService;
 import edu.kit.datamanager.idoris.rules.logic.RuleTask;
 import edu.kit.datamanager.idoris.rules.validation.ValidationResult;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -55,6 +61,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @RequestMapping("/v1/atomicDataTypes")
 @Tag(name = "AtomicDataType", description = "API for managing AtomicDataTypes")
 @Slf4j
+@Observed(contextualName = "atomicDataTypeController")
 public class AtomicDataTypeController implements IAtomicDataTypeApi {
 
     private final AtomicDataTypeService atomicDataTypeService;
@@ -85,6 +92,9 @@ public class AtomicDataTypeController implements IAtomicDataTypeApi {
                                     schema = @Schema(implementation = AtomicDataType.class)))
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "atomicDataTypeController.getAllAtomicDataTypes", description = "Time taken to get all atomic data types", histogram = true)
+    @Counted(value = "atomicDataTypeController.getAllAtomicDataTypes.count", description = "Number of get all atomic data types requests")
     public ResponseEntity<CollectionModel<EntityModel<AtomicDataType>>> getAllAtomicDataTypes() {
         List<EntityModel<AtomicDataType>> atomicDataTypes = atomicDataTypeService.getAllAtomicDataTypes().stream()
                 .map(atomicDataTypeModelAssembler::toModel)
@@ -113,9 +123,12 @@ public class AtomicDataTypeController implements IAtomicDataTypeApi {
                     @ApiResponse(responseCode = "404", description = "AtomicDataType not found")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "atomicDataTypeController.getAtomicDataType", description = "Time taken to get an atomic data type", histogram = true)
+    @Counted(value = "atomicDataTypeController.getAtomicDataType.count", description = "Number of get atomic data type requests")
     public ResponseEntity<EntityModel<AtomicDataType>> getAtomicDataType(
             @Parameter(description = "PID or internal ID of the AtomicDataType", required = true)
-            @PathVariable String id) {
+            @SpanAttribute @PathVariable String id) {
         return atomicDataTypeService.getAtomicDataType(id)
                 .map(atomicDataTypeModelAssembler::toModel)
                 .map(ResponseEntity::ok)
@@ -137,9 +150,12 @@ public class AtomicDataTypeController implements IAtomicDataTypeApi {
                     @ApiResponse(responseCode = "400", description = "Invalid input or validation failed")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "atomicDataTypeController.createAtomicDataType", description = "Time taken to create an atomic data type", histogram = true)
+    @Counted(value = "atomicDataTypeController.createAtomicDataType.count", description = "Number of create atomic data type requests")
     public ResponseEntity<EntityModel<AtomicDataType>> createAtomicDataType(
             @Parameter(description = "AtomicDataType to create", required = true)
-            @Valid @RequestBody AtomicDataType atomicDataType) {
+            @SpanAttribute @Valid @RequestBody AtomicDataType atomicDataType) {
 
         // Validate BEFORE saving
         ValidationResult validationResult = ruleService.executeRules(
@@ -176,11 +192,14 @@ public class AtomicDataTypeController implements IAtomicDataTypeApi {
                     @ApiResponse(responseCode = "404", description = "AtomicDataType not found")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "atomicDataTypeController.updateAtomicDataType", description = "Time taken to update an atomic data type", histogram = true)
+    @Counted(value = "atomicDataTypeController.updateAtomicDataType.count", description = "Number of update atomic data type requests")
     public ResponseEntity<EntityModel<AtomicDataType>> updateAtomicDataType(
             @Parameter(description = "PID or internal ID of the AtomicDataType", required = true)
-            @PathVariable String id,
+            @SpanAttribute @PathVariable String id,
             @Parameter(description = "Updated AtomicDataType", required = true)
-            @Valid @RequestBody AtomicDataType atomicDataType) {
+            @SpanAttribute @Valid @RequestBody AtomicDataType atomicDataType) {
         // Check if the entity exists
         if (!atomicDataTypeService.getAtomicDataType(id).isPresent()) {
             return ResponseEntity.notFound().build();
@@ -227,15 +246,58 @@ public class AtomicDataTypeController implements IAtomicDataTypeApi {
                     @ApiResponse(responseCode = "404", description = "AtomicDataType not found")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "atomicDataTypeController.deleteAtomicDataType", description = "Time taken to delete an atomic data type", histogram = true)
+    @Counted(value = "atomicDataTypeController.deleteAtomicDataType.count", description = "Number of delete atomic data type requests")
     public ResponseEntity<Void> deleteAtomicDataType(
             @Parameter(description = "PID or internal ID of the AtomicDataType", required = true)
-            @PathVariable String id) {
+            @SpanAttribute @PathVariable String id) {
         if (!atomicDataTypeService.getAtomicDataType(id).isPresent()) {
             return ResponseEntity.notFound().build();
         }
 
         atomicDataTypeService.deleteAtomicDataType(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @GetMapping("/{id}/operations")
+    @io.swagger.v3.oas.annotations.Operation(
+            summary = "Get operations for an AtomicDataType",
+            description = "Returns a collection of operations that can be executed on an AtomicDataType",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Operations found",
+                            content = @Content(mediaType = "application/hal+json",
+                                    schema = @Schema(implementation = Operation.class))),
+                    @ApiResponse(responseCode = "404", description = "AtomicDataType not found")
+            }
+    )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "atomicDataTypeController.getOperationsForAtomicDataType", description = "Time taken to get operations for an atomic data type", histogram = true)
+    @Counted(value = "atomicDataTypeController.getOperationsForAtomicDataType.count", description = "Number of get operations for atomic data type requests")
+    public ResponseEntity<CollectionModel<EntityModel<Operation>>> getOperationsForAtomicDataType(
+            @Parameter(description = "PID or internal ID of the AtomicDataType", required = true)
+            @SpanAttribute @PathVariable String id) {
+        if (!atomicDataTypeService.getAtomicDataType(id).isPresent()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        List<EntityModel<Operation>> operations = StreamSupport.stream(operationService.getOperationsForDataType(id).spliterator(), false)
+                .map(operation -> EntityModel.of(operation,
+                        linkTo(methodOn(AtomicDataTypeController.class).getOperationsForAtomicDataType(id)).withSelfRel(),
+                        linkTo(methodOn(AtomicDataTypeController.class).getAtomicDataType(id)).withRel("atomicDataType")))
+                .collect(Collectors.toList());
+
+        CollectionModel<EntityModel<Operation>> collectionModel = CollectionModel.of(
+                operations,
+                linkTo(methodOn(AtomicDataTypeController.class).getOperationsForAtomicDataType(id)).withSelfRel(),
+                linkTo(methodOn(AtomicDataTypeController.class).getAtomicDataType(id)).withRel("atomicDataType")
+        );
+
+        return ResponseEntity.ok(collectionModel);
     }
 
     /**
@@ -254,11 +316,14 @@ public class AtomicDataTypeController implements IAtomicDataTypeApi {
                     @ApiResponse(responseCode = "404", description = "AtomicDataType not found")
             }
     )
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "atomicDataTypeController.patchAtomicDataType", description = "Time taken to patch an atomic data type", histogram = true)
+    @Counted(value = "atomicDataTypeController.patchAtomicDataType.count", description = "Number of patch atomic data type requests")
     public ResponseEntity<EntityModel<AtomicDataType>> patchAtomicDataType(
             @Parameter(description = "PID or internal ID of the AtomicDataType", required = true)
-            @PathVariable String id,
+            @SpanAttribute @PathVariable String id,
             @Parameter(description = "Partial AtomicDataType with fields to update", required = true)
-            @RequestBody AtomicDataType atomicDataTypePatch) {
+            @SpanAttribute @RequestBody AtomicDataType atomicDataTypePatch) {
         if (!atomicDataTypeService.getAtomicDataType(id).isPresent()) {
             return ResponseEntity.notFound().build();
         }
@@ -305,43 +370,6 @@ public class AtomicDataTypeController implements IAtomicDataTypeApi {
         AtomicDataType patchedAtomicDataType = atomicDataTypeService.patchAtomicDataType(id, atomicDataTypePatch);
         EntityModel<AtomicDataType> entityModel = atomicDataTypeModelAssembler.toModel(patchedAtomicDataType);
         return ResponseEntity.ok(entityModel);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    @GetMapping("/{id}/operations")
-    @io.swagger.v3.oas.annotations.Operation(
-            summary = "Get operations for an AtomicDataType",
-            description = "Returns a collection of operations that can be executed on an AtomicDataType",
-            responses = {
-                    @ApiResponse(responseCode = "200", description = "Operations found",
-                            content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = Operation.class))),
-                    @ApiResponse(responseCode = "404", description = "AtomicDataType not found")
-            }
-    )
-    public ResponseEntity<CollectionModel<EntityModel<Operation>>> getOperationsForAtomicDataType(
-            @Parameter(description = "PID or internal ID of the AtomicDataType", required = true)
-            @PathVariable String id) {
-        if (!atomicDataTypeService.getAtomicDataType(id).isPresent()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        List<EntityModel<Operation>> operations = StreamSupport.stream(operationService.getOperationsForDataType(id).spliterator(), false)
-                .map(operation -> EntityModel.of(operation,
-                        linkTo(methodOn(AtomicDataTypeController.class).getOperationsForAtomicDataType(id)).withSelfRel(),
-                        linkTo(methodOn(AtomicDataTypeController.class).getAtomicDataType(id)).withRel("atomicDataType")))
-                .collect(Collectors.toList());
-
-        CollectionModel<EntityModel<Operation>> collectionModel = CollectionModel.of(
-                operations,
-                linkTo(methodOn(AtomicDataTypeController.class).getOperationsForAtomicDataType(id)).withSelfRel(),
-                linkTo(methodOn(AtomicDataTypeController.class).getAtomicDataType(id)).withRel("atomicDataType")
-        );
-
-        return ResponseEntity.ok(collectionModel);
     }
 
     private boolean hasValidationErrors(ValidationResult validationResult) {

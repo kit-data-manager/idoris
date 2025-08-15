@@ -17,6 +17,12 @@
 package edu.kit.datamanager.idoris.core.events;
 
 import edu.kit.datamanager.idoris.core.domain.entities.AdministrativeMetadata;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -27,6 +33,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @Slf4j
+@Observed(contextualName = "eventPublisherService")
 public class EventPublisherService {
     private final ApplicationEventPublisher eventPublisher;
 
@@ -45,6 +52,9 @@ public class EventPublisherService {
      * @param entity the newly created entity
      * @param <T>    the type of entity
      */
+    @WithSpan(kind = SpanKind.PRODUCER)
+    @Timed(value = "eventPublisherService.publishEntityCreated", description = "Time taken to publish entity created event", histogram = true)
+    @Counted(value = "eventPublisherService.publishEntityCreated.count", description = "Number of entity created events published")
     public <T extends AdministrativeMetadata> void publishEntityCreated(T entity) {
         log.debug("Publishing EntityCreatedEvent for entity: {}", entity);
         eventPublisher.publishEvent(new EntityCreatedEvent<>(entity));
@@ -68,7 +78,10 @@ public class EventPublisherService {
      * @param previousVersion the version of the entity before the update
      * @param <T>             the type of entity
      */
-    public <T extends AdministrativeMetadata> void publishEntityUpdated(T entity, Long previousVersion) {
+    @WithSpan(kind = SpanKind.PRODUCER)
+    @Timed(value = "eventPublisherService.publishEntityUpdated", description = "Time taken to publish entity updated event", histogram = true)
+    @Counted(value = "eventPublisherService.publishEntityUpdated.count", description = "Number of entity updated events published")
+    public <T extends AdministrativeMetadata> void publishEntityUpdated(T entity, @SpanAttribute("entity.previousVersion") Long previousVersion) {
         log.debug("Publishing EntityUpdatedEvent for entity: {}, previous version: {}", entity, previousVersion);
         eventPublisher.publishEvent(new EntityUpdatedEvent<>(entity, previousVersion));
     }
@@ -90,6 +103,9 @@ public class EventPublisherService {
      * @param entity the deleted entity
      * @param <T>    the type of entity
      */
+    @WithSpan(kind = SpanKind.PRODUCER)
+    @Timed(value = "eventPublisherService.publishEntityDeleted", description = "Time taken to publish entity deleted event", histogram = true)
+    @Counted(value = "eventPublisherService.publishEntityDeleted.count", description = "Number of entity deleted events published")
     public <T extends AdministrativeMetadata> void publishEntityDeleted(T entity) {
         log.debug("Publishing EntityDeletedEvent for entity: {}", entity);
         eventPublisher.publishEvent(new EntityDeletedEvent<>(entity));
@@ -108,27 +124,33 @@ public class EventPublisherService {
 
     /**
      * Publishes an ID generated event.
-     *
-     * @param entity  the entity for which the ID was generated
-     * @param id      the generated ID
-     * @param isNewID indicates whether this is a newly generated ID or an existing one
-     * @param <T>     the type of entity
-     */
-    public <T extends AdministrativeMetadata> void publishIDGenerated(T entity, String id, boolean isNewID) {
-        log.debug("Publishing IDGeneratedEvent for entity: {}, ID: {}, isNewID: {}", entity, id, isNewID);
-        eventPublisher.publishEvent(new PIDGeneratedEvent<>(entity, id, isNewID));
-    }
-
-    /**
-     * Publishes an ID generated event.
      * Assumes that the ID is newly generated.
      *
      * @param entity the entity for which the ID was generated
      * @param id     the generated ID
      * @param <T>    the type of entity
      */
-    public <T extends AdministrativeMetadata> void publishIDGenerated(T entity, String id) {
+    @WithSpan(kind = SpanKind.PRODUCER)
+    @Timed(value = "eventPublisherService.publishIDGeneratedShort", description = "Time taken to publish ID generated event (short form)", histogram = true)
+    @Counted(value = "eventPublisherService.publishIDGeneratedShort.count", description = "Number of ID generated events published (short form)")
+    public <T extends AdministrativeMetadata> void publishIDGenerated(T entity, @SpanAttribute("entity.id") String id) {
         publishIDGenerated(entity, id, true);
+    }
+
+    /**
+     * Publishes an ID generated event.
+     *
+     * @param entity  the entity for which the ID was generated
+     * @param id      the generated ID
+     * @param isNewID indicates whether this is a newly generated ID or an existing one
+     * @param <T>     the type of entity
+     */
+    @WithSpan(kind = SpanKind.PRODUCER)
+    @Timed(value = "eventPublisherService.publishIDGenerated", description = "Time taken to publish ID generated event", histogram = true)
+    @Counted(value = "eventPublisherService.publishIDGenerated.count", description = "Number of ID generated events published")
+    public <T extends AdministrativeMetadata> void publishIDGenerated(T entity, @SpanAttribute("entity.id") String id, @SpanAttribute("entity.isNewID") boolean isNewID) {
+        log.debug("Publishing IDGeneratedEvent for entity: {}, ID: {}, isNewID: {}", entity, id, isNewID);
+        eventPublisher.publishEvent(new PIDGeneratedEvent<>(entity, id, isNewID));
     }
 
     /**
@@ -138,7 +160,10 @@ public class EventPublisherService {
      * @param previousVersion the version of the entity before the patch
      * @param <T>             the type of entity
      */
-    public <T extends AdministrativeMetadata> void publishEntityPatched(T entity, Long previousVersion) {
+    @WithSpan(kind = SpanKind.PRODUCER)
+    @Timed(value = "eventPublisherService.publishEntityPatched", description = "Time taken to publish entity patched event", histogram = true)
+    @Counted(value = "eventPublisherService.publishEntityPatched.count", description = "Number of entity patched events published")
+    public <T extends AdministrativeMetadata> void publishEntityPatched(T entity, @SpanAttribute("entity.previousVersion") Long previousVersion) {
         log.debug("Publishing EntityPatchedEvent for entity: {}, previous version: {}", entity, previousVersion);
         eventPublisher.publishEvent(new EntityPatchedEvent<>(entity, previousVersion));
     }
@@ -149,7 +174,10 @@ public class EventPublisherService {
      * @param entity     the patched entity
      * @param entityType the type identifier for the entity
      */
-    public void publishEntityPatched(Object entity, String entityType) {
+    @WithSpan(kind = SpanKind.PRODUCER)
+    @Timed(value = "eventPublisherService.publishEntityPatchedGeneric", description = "Time taken to publish generic entity patched event", histogram = true)
+    @Counted(value = "eventPublisherService.publishEntityPatchedGeneric.count", description = "Number of generic entity patched events published")
+    public void publishEntityPatched(Object entity, @SpanAttribute("entity.type") String entityType) {
         log.debug("Publishing EntityPatchedEvent for entity: {}, type: {}", entity, entityType);
         eventPublisher.publishEvent(new GenericEntityPatchedEvent(entity, entityType));
     }
@@ -159,6 +187,9 @@ public class EventPublisherService {
      *
      * @param event the event to publish
      */
+    @WithSpan(kind = SpanKind.PRODUCER)
+    @Timed(value = "eventPublisherService.publishEvent", description = "Time taken to publish generic domain event", histogram = true)
+    @Counted(value = "eventPublisherService.publishEvent.count", description = "Number of generic domain events published")
     public void publishEvent(DomainEvent event) {
         log.debug("Publishing event: {}", event);
         eventPublisher.publishEvent(event);
