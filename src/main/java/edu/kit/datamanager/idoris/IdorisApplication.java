@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Karlsruhe Institute of Technology
+ * Copyright (c) 2024-2025 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.neo4j.config.EnableNeo4jAuditing;
 import org.springframework.data.neo4j.repository.config.EnableNeo4jRepositories;
+import org.springframework.modulith.Modulith;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @SpringBootApplication
@@ -36,6 +37,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EntityScan("edu.kit.datamanager")
 @org.springframework.context.annotation.Configuration
 @Log
+@Modulith
 public class IdorisApplication {
     public static void main(String[] args) {
         SpringApplication.run(IdorisApplication.class, args);
@@ -58,4 +60,20 @@ public class IdorisApplication {
                 .withDialect(Dialect.NEO4J_5)
                 .build();
     }
+
+    // Unregister the OpenTelemetryMeterRegistry from Metrics.globalRegistry and make it available
+    // as a Spring bean instead.
+//    @Bean
+//    @ConditionalOnClass(name = "io.opentelemetry.javaagent.OpenTelemetryAgent")
+//    public MeterRegistry otelRegistry() {
+//        Optional<MeterRegistry> otelRegistry = Metrics.globalRegistry.getRegistries().stream()
+//                .filter(r -> r.getClass().getName().contains("OpenTelemetryMeterRegistry"))
+//                .findAny();
+//        otelRegistry.ifPresent(Metrics.globalRegistry::remove);
+//        return otelRegistry.orElse(null);
+//    }
+//    @Bean
+//    public MeterRegistry getMeterRegistry() {
+//        return new CompositeMeterRegistry();
+//    }
 }

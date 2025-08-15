@@ -1,0 +1,142 @@
+version: '3.8'
+
+services:
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-remote-write-receiver'
+    restart: unless-stopped
+    networks:
+      - observability-network
+
+  # Mimir for scalable metrics storage
+  mimir:
+    image: grafana/mimir:latest
+    container_name: mimir
+    ports:
+      - "9009:9009"  # HTTP API
+      - "9095:9095"  # gRPC API
+      - "9093:9093"  # Alertmanager API
+    volumes:
+      #      - ./observability/mimir/mimir-config.yaml:/etc/mimir/config.yaml
+      - mimir_data:/data
+    #    command: [ "-config.file=/etc/mimir/config.yaml" ]
+    restart: unless-stopped
+    networks:
+      - observability-network
+
+  # Loki for log aggregation
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./observability/loki/loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+    networks:
+      - observability-network
+
+  # Grafana Alloy for unified observability data collection
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    volumes:
+      - ./observability/alloy/alloy-config.alloy:/etc/alloy/config.alloy
+      - /var/log:/var/log
+      - ./logs:/logs
+      - ./observability/alloy/alloy_data:/var/lib/alloy/data
+    command: [ "run", "--storage.path=/var/lib/alloy/data", "--server.http.listen-addr=0.0.0.0:12345", "/etc/alloy/config.alloy" ]
+    restart: unless-stopped
+    ports:
+      - "4317:4317"  # OTLP gRPC
+      - "4318:4318"  # OTLP HTTP
+      - "12345:12345"  # Alloy UI
+    depends_on:
+      - loki
+      - prometheus
+    networks:
+      - observability-network
+
+  # Tempo for distributed tracing
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo/tempo-config.yml" ]
+    user: root  # Run as root to avoid permission issues
+    volumes:
+      - ./observability/tempo/tempo-config.yml:/etc/tempo/tempo-config.yml
+      - tempo_data:/tmp/tempo
+    ports:
+      - "3200:3200"  # tempo
+      - "4319:4319"  # OTLP gRPC (changed from 4317 to avoid conflict with Alloy)
+      - "4320:4320"  # OTLP HTTP (changed from 4318 to avoid conflict with Alloy)
+      - "9411:9411"  # Zipkin
+    restart: unless-stopped
+    networks:
+      - observability-network
+
+  # Pyroscope for continuous profiling
+  pyroscope:
+    image: grafana/pyroscope:latest
+    container_name: pyroscope
+    ports:
+      - "4040:4040"  # HTTP API and UI
+    volumes:
+      #      - ./observability/pyroscope/pyroscope-config.yaml:/etc/pyroscope/config.yaml
+      - pyroscope_data:/data
+    #    command: [ "-config.file=/etc/pyroscope/config.yaml" ]
+    restart: unless-stopped
+    networks:
+      - observability-network
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+      - mimir
+      - loki
+      - tempo
+      - pyroscope
+    networks:
+      - observability-network
+
+volumes:
+  prometheus_data:
+  mimir_data:
+  loki_data:
+  tempo_data:
+  pyroscope_data:
+  grafana_data:
+
+networks:
+  observability-network:
+    driver: bridge

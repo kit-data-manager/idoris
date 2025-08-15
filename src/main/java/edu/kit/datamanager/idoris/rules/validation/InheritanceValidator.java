@@ -16,11 +16,16 @@
 
 package edu.kit.datamanager.idoris.rules.validation;
 
-import edu.kit.datamanager.idoris.domain.entities.AtomicDataType;
-import edu.kit.datamanager.idoris.domain.entities.Attribute;
-import edu.kit.datamanager.idoris.domain.entities.TypeProfile;
+import edu.kit.datamanager.idoris.attributes.entities.Attribute;
+import edu.kit.datamanager.idoris.datatypes.entities.AtomicDataType;
+import edu.kit.datamanager.idoris.datatypes.entities.TypeProfile;
 import edu.kit.datamanager.idoris.rules.logic.Rule;
 import edu.kit.datamanager.idoris.rules.logic.RuleTask;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
 
 import static edu.kit.datamanager.idoris.rules.logic.OutputMessage.MessageSeverity.ERROR;
@@ -32,6 +37,7 @@ import static edu.kit.datamanager.idoris.rules.logic.OutputMessage.MessageSeveri
  * inherited properties maintain consistency with parent entities.
  */
 @Slf4j
+@Observed(contextualName = "inheritanceValidator")
 @Rule(
         appliesTo = {
                 AtomicDataType.class,
@@ -52,6 +58,7 @@ public class InheritanceValidator extends ValidationVisitor {
      * @return ValidationResult containing any validation errors
      */
     @Override
+    @WithSpan(kind = SpanKind.INTERNAL)
     public ValidationResult visit(Attribute attribute, Object... args) {
         ValidationResult result = new ValidationResult();
 
@@ -85,6 +92,9 @@ public class InheritanceValidator extends ValidationVisitor {
      * @return ValidationResult containing any validation errors
      */
     @Override
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "rules.inheritanceValidator.visitAtomicDataType", description = "Time to validate inheritance for AtomicDataType", histogram = true)
+    @Counted(value = "rules.inheritanceValidator.visitAtomicDataType.count", description = "Number of AtomicDataType inheritance validations")
     public ValidationResult visit(AtomicDataType atomicDataType, Object... args) {
         ValidationResult result = new ValidationResult();
 
@@ -130,14 +140,17 @@ public class InheritanceValidator extends ValidationVisitor {
      * @return ValidationResult containing any validation errors
      */
     @Override
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "rules.inheritanceValidator.visitTypeProfile", description = "Time to validate inheritance for TypeProfile", histogram = true)
+    @Counted(value = "rules.inheritanceValidator.visitTypeProfile.count", description = "Number of TypeProfile inheritance validations")
     public ValidationResult visit(TypeProfile typeProfile, Object... args) {
         ValidationResult result = new ValidationResult();
 
         if (typeProfile.getInheritsFrom() != null && typeProfile.getInheritsFrom().size() > 0) {
             for (TypeProfile parent : typeProfile.getInheritsFrom()) {
                 if (parent.isAbstract() && !typeProfile.isAbstract()) {
-                    result.addMessage("TypeProfile " + typeProfile.getPid() + " is not abstract, but inherits from the TypeProfile " +
-                            parent.getPid() + " that is abstract.", typeProfile, ERROR);
+                    result.addMessage("TypeProfile " + typeProfile.getId() + " is not abstract, but inherits from the TypeProfile " +
+                            parent.getId() + " that is abstract.", typeProfile, ERROR);
                 }
             }
         }

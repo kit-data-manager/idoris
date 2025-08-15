@@ -30,10 +30,15 @@ package edu.kit.datamanager.idoris.rules.validation;
  * need validation capabilities.</p>
  */
 
-import edu.kit.datamanager.idoris.domain.VisitableElement;
+import edu.kit.datamanager.idoris.core.domain.VisitableElement;
 import edu.kit.datamanager.idoris.rules.logic.IRule;
 import edu.kit.datamanager.idoris.rules.logic.Visitor;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 
+@Observed
 public abstract class ValidationVisitor extends Visitor<ValidationResult> implements IRule<VisitableElement, ValidationResult> {
 
     /**
@@ -52,7 +57,8 @@ public abstract class ValidationVisitor extends Visitor<ValidationResult> implem
      * @param output the output to update with processing results
      */
     @Override
-    public void process(VisitableElement input, ValidationResult output) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    public void process(@SpanAttribute VisitableElement input, @SpanAttribute ValidationResult output) {
         ValidationResult result = input.execute(this);
         output.merge(result);
     }

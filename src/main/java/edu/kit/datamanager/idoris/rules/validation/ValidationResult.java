@@ -68,6 +68,22 @@ public class ValidationResult implements RuleOutput<ValidationResult> {
      */
     private List<ValidationResult> children = new ArrayList<>();
 
+    public static ValidationResult combine(ValidationResult... results) {
+        ValidationResult combined = new ValidationResult();
+        if (results != null) {
+            for (ValidationResult result : results) {
+                if (result != null && !result.isEmpty()) {
+                    combined.merge(result);
+                }
+            }
+        }
+        return combined;
+    }
+
+    public static ValidationResult error(String message, Object element) {
+        return new ValidationResult().addMessage(message, element, OutputMessage.MessageSeverity.ERROR);
+    }
+
     /**
      * Adds a validation message to this result.
      *
@@ -79,6 +95,18 @@ public class ValidationResult implements RuleOutput<ValidationResult> {
     public ValidationResult addMessage(String message, Object element, OutputMessage.MessageSeverity type) {
         messages.add(new OutputMessage(message, type, element));
         return this;
+    }
+
+    public static ValidationResult warning(String message, Object element) {
+        return new ValidationResult().addMessage(message, element, OutputMessage.MessageSeverity.WARNING);
+    }
+
+    public static ValidationResult info(String message, Object element) {
+        return new ValidationResult().addMessage(message, element, OutputMessage.MessageSeverity.INFO);
+    }
+
+    public static ValidationResult ok() {
+        return new ValidationResult();
     }
 
     /**

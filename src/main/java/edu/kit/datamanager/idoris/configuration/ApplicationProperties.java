@@ -38,7 +38,7 @@ public class ApplicationProperties {
     /**
      * The base URL of the IDORIS service, used in e.g., the PID records.
      */
-    @Value("${idoris.base-url")
+    @Value("${idoris.base-url}")
     @NotNull(message = "Base URL is required")
     private String baseUrl;
 
@@ -61,22 +61,6 @@ public class ApplicationProperties {
     private OutputMessage.MessageSeverity validationLevel = INFO;
 
     /**
-     * The PID generation strategy to use.
-     * <li>
-     * LOCAL: Use the local PID generation strategy.
-     * This is the default strategy and uses the local database to generate PIDs.
-     * <li>
-     * TYPED_PID_MAKER: Use the Typed PID Maker service to generate PIDs.
-     * This strategy uses an external service to generate PIDs and therefore requires additional configuration.
-     *
-     * @see PIDGeneration
-     * @see TypedPIDMakerConfig
-     */
-    @Value("${idoris.pid-generation}")
-    @NotNull
-    private PIDGeneration pidGeneration = PIDGeneration.LOCAL;
-
-    /**
      * The policy to use for validating the input.
      * <p>
      * The policy can be either STRICT or LAX.
@@ -87,8 +71,4 @@ public class ApplicationProperties {
         STRICT, LAX
     }
 
-    public enum PIDGeneration {
-        LOCAL,
-        TYPED_PID_MAKER,
-    }
 }
