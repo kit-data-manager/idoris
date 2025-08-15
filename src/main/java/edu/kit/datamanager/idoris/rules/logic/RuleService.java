@@ -20,8 +20,6 @@ import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
 import io.opentelemetry.api.trace.SpanKind;
-import io.opentelemetry.context.Context;
-import io.opentelemetry.context.Scope;
 import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.annotation.PostConstruct;
@@ -30,11 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.Array;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -52,7 +47,6 @@ public class RuleService {
      * in the precomputed dependency graph, avoiding the instantiation of unused rules.
      */
     private final ListableBeanFactory beanFactory;
-
     /**
      * Thread-safe registry mapping fully qualified class names to rule instances.
      * <p>
@@ -219,35 +213,17 @@ public class RuleService {
      * <p>
      * This method is the primary entry point for rule execution. It retrieves the correct
      * sequence of rules from the precomputed graph based on the task and element type,
-     * then executes them in parallel while respecting their dependency order.
+     * then executes them sequentially while maintaining OpenTelemetry span context.
      * <p>
      * The method follows these steps:
      * <ol>
      *   <li>Identify the correct set of rule class names from the precomputed graph</li>
-     *   <li>Execute those rules in parallel using {@link CompletableFuture}</li>
+     *   <li>Execute those rules sequentially in their dependency order</li>
      *   <li>Merge the results from all rules into a single result object</li>
      * </ol>
      * <p>
      * If no rules are found for the given task and element type, an empty result is returned.
      * <p>
-     * <strong>Example usage:</strong>
-     * <pre>
-     * {@code
-     * // Validate an Operation
-     * ValidationResult validationResult = ruleService.executeRules(
-     *     RuleTask.VALIDATE,
-     *     operation,
-     *     ValidationResult::new
-     * );
-     *
-     * // Enrich a TypeProfile
-     * EnrichmentResult enrichmentResult = ruleService.executeRules(
-     *     RuleTask.ENRICH,
-     *     typeProfile,
-     *     EnrichmentResult::new
-     * );
-     * }
-     * </pre>
      *
      * @param task          the rule task to execute (e.g., {@link RuleTask#VALIDATE})
      * @param element       the domain element to process
@@ -279,23 +255,23 @@ public class RuleService {
 
         log.debug("Found {} rules for task={}, elementType={}", ruleClassNames.size(), task, elementType);
 
-        // Execute rules in parallel and merge results
-        return executeRulesInParallel(ruleClassNames, element, resultFactory);
+        // Execute rules sequentially to maintain proper dependency order and OpenTelemetry context
+        return executeRulesSequentially(ruleClassNames, element, resultFactory);
     }
 
     /**
-     * Executes rules in parallel while respecting their precomputed ordering.
+     * Executes rules sequentially in their precomputed ordering.
      * <p>
-     * This method is responsible for the actual parallel execution of rules. It takes the
+     * This method is responsible for the sequential execution of rules. It takes the
      * list of rule class names in their precomputed execution order, retrieves the rule
-     * instances from the registry, and executes them concurrently.
+     * instances from the registry, and executes them one by one while maintaining
+     * the OpenTelemetry span context.
      * <p>
      * Key aspects of this implementation:
      * <ul>
      *   <li><strong>Selective execution</strong>: Only rules that are found in the registry are executed</li>
-     *   <li><strong>Parallel processing</strong>: Each rule executes in its own {@link CompletableFuture}</li>
-     *   <li><strong>Coordinated completion</strong>: The method waits for all rule executions to complete</li>
-     *   <li><strong>Result aggregation</strong>: Results from all rules are merged into a single result</li>
+     *   <li><strong>Sequential processing</strong>: Each rule executes in order, maintaining span context</li>
+     *   <li><strong>Result accumulation</strong>: Results from all rules are merged into a single result</li>
      * </ul>
      * <p>
      * If no rule instances are available for execution, an empty result is returned. This ensures
@@ -309,42 +285,50 @@ public class RuleService {
      * @return the merged result of all executed rules
      * @throws RuntimeException if rule execution fails critically
      */
+    @SuppressWarnings("unchecked")
     @WithSpan(kind = SpanKind.INTERNAL)
-    private <T extends VisitableElement, R extends RuleOutput<R>> R executeRulesInParallel(
+    private <T extends VisitableElement, R extends RuleOutput<R>> R executeRulesSequentially(
             @SpanAttribute List<String> ruleClassNames,
             T element,
             Supplier<R> resultFactory
     ) {
-        // Create result futures for rule execution, but only for rules that are actually available in the registry
-        // This pipeline: 1) Gets rule instances from registry, 2) Filters out missing rules, 3) Executes each rule asynchronously
-        List<CompletableFuture<R>> resultFutures = ruleClassNames.stream()
-                .map(ruleRegistry::get)                  // Look up each rule by class name
-                .filter(Objects::nonNull)                // Skip rules that weren't found (null)
-                .map(rule -> executeRule(rule, element, resultFactory))  // Execute each rule asynchronously
-                .collect(Collectors.toList());          // Collect all future results
+        R finalResult = resultFactory.get();
 
-        if (resultFutures.isEmpty()) {
-            log.debug("No available rule instances found for execution");
-            return resultFactory.get();
+        for (String ruleClassName : ruleClassNames) {
+            IRule<?, ?> rule = getRuleFromRegistry(ruleClassName);
+            if (rule != null) {
+                try {
+                    R ruleResult = executeRule(rule, element, resultFactory);
+                    finalResult = finalResult.merge(ruleResult);
+                } catch (Exception e) {
+                    log.error("Rule {} execution failed: {}", rule.getClass().getSimpleName(), e.getMessage(), e);
+                    throw new RuntimeException("Rule execution failed: " + e.getMessage(), e);
+                }
+            }
         }
 
-        // Wait for all executions to complete
-        try {
-            CompletableFuture.allOf(resultFutures.toArray(CompletableFuture[]::new)).join();
-        } catch (Exception e) {
-            log.error("Error during rule execution", e);
-            throw new RuntimeException("Rule execution failed", e);
-        }
-
-        // Merge results
-        return mergeResults(resultFutures, resultFactory);
+        return finalResult;
     }
 
     /**
-     * Executes a single rule asynchronously and returns its result future.
+     * Retrieves a rule from the registry by its class name.
+     * Logs a debug message if the rule is not found.
+     *
+     * @param ruleClassName the fully qualified class name of the rule
+     * @return the rule instance, or null if not found
+     */
+    private IRule<?, ?> getRuleFromRegistry(String ruleClassName) {
+        IRule<?, ?> rule = ruleRegistry.get(ruleClassName);
+        if (rule == null) {
+            log.debug("Skipping rule not found in registry: {}", ruleClassName);
+        }
+        return rule;
+    }
+
+    /**
+     * Executes a single rule synchronously and returns its result.
      * <p>
-     * This method wraps the execution of an individual rule in a {@link CompletableFuture} to
-     * enable asynchronous processing. It handles the lifecycle of rule execution including:
+     * This method handles the lifecycle of rule execution including:
      * <ul>
      *   <li>Creating a fresh result object for the rule</li>
      *   <li>Safely casting the rule to the correct parameterized type</li>
@@ -361,103 +345,28 @@ public class RuleService {
      * @param resultFactory factory for creating result objects
      * @param <T>           element type extending VisitableElement
      * @param <R>           result type extending RuleOutput
-     * @return a CompletableFuture containing the rule's execution result
+     * @return the rule's execution result
      */
     @SuppressWarnings("unchecked")
-    @WithSpan(kind = SpanKind.INTERNAL)
-    private <T extends VisitableElement, R extends RuleOutput<R>> CompletableFuture<R> executeRule(
-            IRule<?, ?> rule,
-            T element,
+    @WithSpan(value = "rule.execute", kind = SpanKind.INTERNAL)
+    private <T extends VisitableElement, R extends RuleOutput<R>> R executeRule(
+            @SpanAttribute("rule.class") IRule<?, ?> rule,
+            @SpanAttribute("element.class") T element,
             Supplier<R> resultFactory
     ) {
-        // OpenTelemetry context propagation setup
-        Context parentOtelContext = io.opentelemetry.context.Context.current();
+        String ruleName = rule.getClass().getSimpleName();
+        log.debug("Executing rule: {}", ruleName);
 
-        return CompletableFuture.supplyAsync(() -> {
-            try (Scope scope = parentOtelContext.makeCurrent()) {
-                String ruleName = rule.getClass().getSimpleName();
-                log.debug("Executing rule: {}", ruleName);
+        R result = resultFactory.get();
 
-                R result = resultFactory.get();
+        // Perform a type-safe cast to the specific generic parameter types needed for this rule execution
+        // This cast is guaranteed to be safe because the precomputed graph ensures type compatibility
+        IRule<T, R> typedRule = (IRule<T, R>) rule;
 
-                try {
-                    // Perform a type-safe cast to the specific generic parameter types needed for this rule execution
-                    // This cast is guaranteed to be safe because the precomputed graph ensures type compatibility
-                    IRule<T, R> typedRule = (IRule<T, R>) rule;
-
-                    // Execute the rule's processing logic with the input element and result container
-                    typedRule.process(element, result);
-                    log.debug("Rule {} execution completed successfully", ruleName);
-                    return result;
-                } catch (Exception e) {
-                    log.error("Rule {} execution failed: {}", ruleName, e.getMessage(), e);
-                    throw new RuntimeException("Rule execution failed: " + e.getMessage(), e);
-                }
-            }
-        });
+        // Execute the rule's processing logic with the input element and result container
+        typedRule.process(element, result);
+        log.debug("Rule {} execution completed successfully", ruleName);
+        return result;
     }
 
-    /**
-     * Merges results from multiple rule executions into a single consolidated result.
-     * <p>
-     * This method aggregates the results from all rule executions into a single result object.
-     * It handles several important aspects of result processing:
-     * <ul>
-     *   <li><strong>Failure resilience</strong>: Gracefully handles failures in individual rule executions</li>
-     *   <li><strong>Type safety</strong>: Creates properly typed arrays for the merge operation</li>
-     *   <li><strong>Empty result handling</strong>: Returns a valid empty result when no results are available</li>
-     * </ul>
-     * <p>
-     * The merge operation itself is delegated to the {@link RuleOutput#merge} method of the result type,
-     * which implements domain-specific logic for combining multiple results. This allows for
-     * flexible result aggregation strategies depending on the specific rule task.
-     *
-     * @param resultFutures futures containing the results of rule executions
-     * @param resultFactory factory for creating the initial result object
-     * @param <R>           result type extending RuleOutput
-     * @return a single merged result containing the combined output of all rules
-     */
-    @WithSpan(kind = SpanKind.INTERNAL)
-    private <R extends RuleOutput<R>> R mergeResults(
-            List<CompletableFuture<R>> resultFutures,
-            Supplier<R> resultFactory
-    ) {
-        R finalResult = resultFactory.get();
-
-        if (resultFutures.isEmpty()) {
-            return finalResult;
-        }
-
-        log.debug("Merging {} rule results", resultFutures.size());
-
-        // Extract results from all futures, gracefully handling any that failed during execution
-        // This creates a list containing only the successfully completed rule results
-        List<R> successfulResults = resultFutures.stream()
-                .map(future -> {
-                    try {
-                        // Get the result from the completed future
-                        return future.join();
-                    } catch (Exception e) {
-                        // If the future completed exceptionally, log a warning and return null
-                        // This prevents failures in one rule from affecting the entire merge process
-                        log.warn("Skipping failed rule result during merge: {}", e.getMessage());
-                        return null;
-                    }
-                })
-                .filter(Objects::nonNull)  // Remove any nulls from failed rule executions
-                .toList();
-
-        if (successfulResults.isEmpty()) {
-            return finalResult;
-        }
-
-        // Create a properly typed array for the merge operation using reflection
-        // This is necessary because Java's type erasure prevents direct instantiation of generic arrays
-        // We use the concrete class of the first result to determine the array component type
-        @SuppressWarnings("unchecked")
-        R[] resultsArray = successfulResults.toArray((R[]) Array.newInstance(
-                successfulResults.getFirst().getClass(), successfulResults.size()));
-
-        return finalResult.merge(resultsArray);
-    }
 }
