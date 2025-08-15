@@ -22,6 +22,13 @@ import edu.kit.datamanager.idoris.technologyinterfaces.entities.TechnologyInterf
 import edu.kit.datamanager.idoris.technologyinterfaces.services.TechnologyInterfaceService;
 import edu.kit.datamanager.idoris.technologyinterfaces.web.api.ITechnologyInterfaceApi;
 import edu.kit.datamanager.idoris.technologyinterfaces.web.hateoas.TechnologyInterfaceModelAssembler;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
@@ -43,6 +50,8 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
  */
 @RestController
 @RequestMapping("/v1/technologyInterfaces")
+@Slf4j
+@Observed(contextualName = "technologyInterfaceController")
 public class TechnologyInterfaceController implements ITechnologyInterfaceApi {
 
     @Autowired
@@ -58,7 +67,11 @@ public class TechnologyInterfaceController implements ITechnologyInterfaceApi {
      * {@inheritDoc}
      */
     @Override
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "technologyInterfaceController.getAllTechnologyInterfaces", description = "Time taken to get all technology interfaces", histogram = true)
+    @Counted(value = "technologyInterfaceController.getAllTechnologyInterfaces.count", description = "Number of get all technology interfaces requests")
     public ResponseEntity<CollectionModel<EntityModel<TechnologyInterface>>> getAllTechnologyInterfaces() {
+        log.debug("Getting all TechnologyInterfaces");
         List<EntityModel<TechnologyInterface>> technologyInterfaces = StreamSupport.stream(technologyInterfaceService.getAllTechnologyInterfaces().spliterator(), false)
                 .map(technologyInterfaceModelAssembler::toModel)
                 .collect(Collectors.toList());
@@ -68,6 +81,7 @@ public class TechnologyInterfaceController implements ITechnologyInterfaceApi {
                 linkTo(methodOn(TechnologyInterfaceController.class).getAllTechnologyInterfaces()).withSelfRel()
         );
 
+        log.info("Retrieved {} technology interfaces", technologyInterfaces.size());
         return ResponseEntity.ok(collectionModel);
     }
 
@@ -75,18 +89,32 @@ public class TechnologyInterfaceController implements ITechnologyInterfaceApi {
      * {@inheritDoc}
      */
     @Override
-    public ResponseEntity<EntityModel<TechnologyInterface>> getTechnologyInterface(String id) {
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "technologyInterfaceController.getTechnologyInterface", description = "Time taken to get a technology interface", histogram = true)
+    @Counted(value = "technologyInterfaceController.getTechnologyInterface.count", description = "Number of get technology interface requests")
+    public ResponseEntity<EntityModel<TechnologyInterface>> getTechnologyInterface(@SpanAttribute("technologyInterface.id") String id) {
+        log.debug("Getting TechnologyInterface with ID: {}", id);
         return technologyInterfaceService.getTechnologyInterface(id)
-                .map(technologyInterfaceModelAssembler::toModel)
+                .map(technologyInterface -> {
+                    log.info("Found TechnologyInterface with ID: {}", id);
+                    return technologyInterfaceModelAssembler.toModel(technologyInterface);
+                })
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseGet(() -> {
+                    log.warn("TechnologyInterface not found with ID: {}", id);
+                    return ResponseEntity.notFound().build();
+                });
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ResponseEntity<CollectionModel<EntityModel<Attribute>>> getAttributes(String id) {
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "technologyInterfaceController.getAttributes", description = "Time taken to get technology interface attributes", histogram = true)
+    @Counted(value = "technologyInterfaceController.getAttributes.count", description = "Number of get technology interface attributes requests")
+    public ResponseEntity<CollectionModel<EntityModel<Attribute>>> getAttributes(@SpanAttribute("technologyInterface.id") String id) {
+        log.debug("Getting attributes for TechnologyInterface with ID: {}", id);
         return technologyInterfaceService.getTechnologyInterface(id)
                 .map(technologyInterface -> {
                     List<EntityModel<Attribute>> attributes = StreamSupport.stream(technologyInterface.getAttributes().spliterator(), false)
@@ -99,16 +127,24 @@ public class TechnologyInterfaceController implements ITechnologyInterfaceApi {
                             linkTo(methodOn(TechnologyInterfaceController.class).getTechnologyInterface(id)).withRel("technologyInterface")
                     );
 
+                    log.info("Retrieved {} attributes for TechnologyInterface with ID: {}", attributes.size(), id);
                     return ResponseEntity.ok(collectionModel);
                 })
-                .orElse(ResponseEntity.notFound().build());
+                .orElseGet(() -> {
+                    log.warn("TechnologyInterface not found with ID: {}", id);
+                    return ResponseEntity.notFound().build();
+                });
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ResponseEntity<CollectionModel<EntityModel<Attribute>>> getOutputs(String id) {
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "technologyInterfaceController.getOutputs", description = "Time taken to get technology interface outputs", histogram = true)
+    @Counted(value = "technologyInterfaceController.getOutputs.count", description = "Number of get technology interface outputs requests")
+    public ResponseEntity<CollectionModel<EntityModel<Attribute>>> getOutputs(@SpanAttribute("technologyInterface.id") String id) {
+        log.debug("Getting outputs for TechnologyInterface with ID: {}", id);
         return technologyInterfaceService.getTechnologyInterface(id)
                 .map(technologyInterface -> {
                     List<EntityModel<Attribute>> outputs = StreamSupport.stream(technologyInterface.getOutputs().spliterator(), false)
@@ -121,18 +157,27 @@ public class TechnologyInterfaceController implements ITechnologyInterfaceApi {
                             linkTo(methodOn(TechnologyInterfaceController.class).getTechnologyInterface(id)).withRel("technologyInterface")
                     );
 
+                    log.info("Retrieved {} outputs for TechnologyInterface with ID: {}", outputs.size(), id);
                     return ResponseEntity.ok(collectionModel);
                 })
-                .orElse(ResponseEntity.notFound().build());
+                .orElseGet(() -> {
+                    log.warn("TechnologyInterface not found with ID: {}", id);
+                    return ResponseEntity.notFound().build();
+                });
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ResponseEntity<EntityModel<TechnologyInterface>> createTechnologyInterface(TechnologyInterface technologyInterface) {
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "technologyInterfaceController.createTechnologyInterface", description = "Time taken to create a technology interface", histogram = true)
+    @Counted(value = "technologyInterfaceController.createTechnologyInterface.count", description = "Number of create technology interface requests")
+    public ResponseEntity<EntityModel<TechnologyInterface>> createTechnologyInterface(@SpanAttribute TechnologyInterface technologyInterface) {
+        log.debug("Creating TechnologyInterface: {}", technologyInterface.getName());
         TechnologyInterface createdTechnologyInterface = technologyInterfaceService.createTechnologyInterface(technologyInterface);
         EntityModel<TechnologyInterface> entityModel = technologyInterfaceModelAssembler.toModel(createdTechnologyInterface);
+        log.info("Created TechnologyInterface with ID: {}", createdTechnologyInterface.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(entityModel);
     }
 
@@ -140,9 +185,14 @@ public class TechnologyInterfaceController implements ITechnologyInterfaceApi {
      * {@inheritDoc}
      */
     @Override
-    public ResponseEntity<EntityModel<TechnologyInterface>> updateTechnologyInterface(String id, TechnologyInterface technologyInterface) {
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "technologyInterfaceController.updateTechnologyInterface", description = "Time taken to update a technology interface", histogram = true)
+    @Counted(value = "technologyInterfaceController.updateTechnologyInterface.count", description = "Number of update technology interface requests")
+    public ResponseEntity<EntityModel<TechnologyInterface>> updateTechnologyInterface(@SpanAttribute("technologyInterface.id") String id, @SpanAttribute TechnologyInterface technologyInterface) {
+        log.debug("Updating TechnologyInterface with ID: {}", id);
         // Check if the entity exists
         if (!technologyInterfaceService.getTechnologyInterface(id).isPresent()) {
+            log.warn("TechnologyInterface not found with ID: {}", id);
             return ResponseEntity.notFound().build();
         }
 
@@ -157,6 +207,7 @@ public class TechnologyInterfaceController implements ITechnologyInterfaceApi {
 
         TechnologyInterface updatedTechnologyInterface = technologyInterfaceService.updateTechnologyInterface(technologyInterface);
         EntityModel<TechnologyInterface> entityModel = technologyInterfaceModelAssembler.toModel(updatedTechnologyInterface);
+        log.info("Updated TechnologyInterface with ID: {}", id);
         return ResponseEntity.ok(entityModel);
     }
 
@@ -164,12 +215,18 @@ public class TechnologyInterfaceController implements ITechnologyInterfaceApi {
      * {@inheritDoc}
      */
     @Override
-    public ResponseEntity<Void> deleteTechnologyInterface(String id) {
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "technologyInterfaceController.deleteTechnologyInterface", description = "Time taken to delete a technology interface", histogram = true)
+    @Counted(value = "technologyInterfaceController.deleteTechnologyInterface.count", description = "Number of delete technology interface requests")
+    public ResponseEntity<Void> deleteTechnologyInterface(@SpanAttribute("technologyInterface.id") String id) {
+        log.debug("Deleting TechnologyInterface with ID: {}", id);
         if (!technologyInterfaceService.getTechnologyInterface(id).isPresent()) {
+            log.warn("TechnologyInterface not found with ID: {}", id);
             return ResponseEntity.notFound().build();
         }
 
         technologyInterfaceService.deleteTechnologyInterface(id);
+        log.info("Deleted TechnologyInterface with ID: {}", id);
         return ResponseEntity.noContent().build();
     }
 
@@ -177,13 +234,19 @@ public class TechnologyInterfaceController implements ITechnologyInterfaceApi {
      * {@inheritDoc}
      */
     @Override
-    public ResponseEntity<EntityModel<TechnologyInterface>> patchTechnologyInterface(String id, TechnologyInterface technologyInterfacePatch) {
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "technologyInterfaceController.patchTechnologyInterface", description = "Time taken to patch a technology interface", histogram = true)
+    @Counted(value = "technologyInterfaceController.patchTechnologyInterface.count", description = "Number of patch technology interface requests")
+    public ResponseEntity<EntityModel<TechnologyInterface>> patchTechnologyInterface(@SpanAttribute("technologyInterface.id") String id, @SpanAttribute TechnologyInterface technologyInterfacePatch) {
+        log.debug("Patching TechnologyInterface with ID: {}", id);
         if (!technologyInterfaceService.getTechnologyInterface(id).isPresent()) {
+            log.warn("TechnologyInterface not found with ID: {}", id);
             return ResponseEntity.notFound().build();
         }
 
         TechnologyInterface patchedTechnologyInterface = technologyInterfaceService.patchTechnologyInterface(id, technologyInterfacePatch);
         EntityModel<TechnologyInterface> entityModel = technologyInterfaceModelAssembler.toModel(patchedTechnologyInterface);
+        log.info("Patched TechnologyInterface with ID: {}", id);
         return ResponseEntity.ok(entityModel);
     }
 }

@@ -16,6 +16,14 @@
 
 package edu.kit.datamanager.idoris.rules.logic;
 
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,50 +39,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-/**
- * Central service that manages rule discovery and execution based on precomputed dependency graphs.
- * <p>
- * The RuleService is the orchestration core of the rule execution engine. It leverages a
- * precomputed dependency graph generated at compile-time by the annotation processor to
- * efficiently execute rules in the correct order. This approach eliminates the overhead
- * of runtime dependency resolution and enables optimal parallel execution.
- * <p>
- * This service follows an optimization-first design with several key principles:
- * <ul>
- *   <li><strong>Just-in-time rule instantiation</strong>: Only rules referenced in the precomputed
- *       graph are loaded, reducing memory usage and startup time</li>
- *   <li><strong>Zero runtime dependency calculation</strong>: All rule ordering is determined
- *       at compile-time through static analysis</li>
- *   <li><strong>Maximum parallelism</strong>: Rules are executed concurrently using CompletableFuture
- *       while still respecting their execution order</li>
- *   <li><strong>Type-safe execution</strong>: Strong generic typing ensures rules receive
- *       compatible input types and produce correct output types</li>
- *   <li><strong>Resilient processing</strong>: Failures in individual rules are isolated and won't
- *       cause the entire rule processing pipeline to fail</li>
- * </ul>
- * <p>
- * <strong>Usage example:</strong>
- * <pre>
- * {@code
- * // Create a rule result factory
- * Supplier<ValidationResult> resultFactory = ValidationResult::new;
- *
- * // Execute validation rules for an Operation
- * ValidationResult result = ruleService.executeRules(
- *     RuleTask.VALIDATE,
- *     operation,
- *     resultFactory
- * );
- * }
- * </pre>
- * <p>
- * <strong>Extension points:</strong> The rule engine can be extended by implementing the {@link IRule}
- * interface and annotating the implementation with {@link Rule}. The annotation processor will
- * automatically incorporate the new rule into the precomputed graph.
- */
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@Observed(contextualName = "ruleService")
 public class RuleService {
 
     /**
@@ -159,6 +127,7 @@ public class RuleService {
      *                               which could happen if the annotation processor didn't run
      *                               or if the generated class is not on the classpath
      */
+    @WithSpan(kind = SpanKind.INTERNAL)
     private void loadPrecomputedGraph() {
         log.info("Loading precomputed rule dependency graph...");
 
@@ -193,6 +162,7 @@ public class RuleService {
      * can help identify configuration issues early during application startup rather than
      * failing at runtime.
      */
+    @WithSpan(kind = SpanKind.INTERNAL)
     private void discoverRequiredRules() {
         log.info("Discovering required rule implementations...");
 
@@ -288,8 +258,11 @@ public class RuleService {
      * @throws RuntimeException if a critical error occurs during rule execution that prevents
      *                          completion of the operation
      */
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "rules.ruleService.executeRules", description = "Time to execute all rules for a given task/element", histogram = true)
+    @Counted(value = "rules.ruleService.executeRules.count", description = "Rule execution entrypoints")
     public <T extends VisitableElement, R extends RuleOutput<R>> R executeRules(
-            RuleTask task,
+            @SpanAttribute RuleTask task,
             T element,
             Supplier<R> resultFactory
     ) {
@@ -336,8 +309,9 @@ public class RuleService {
      * @return the merged result of all executed rules
      * @throws RuntimeException if rule execution fails critically
      */
+    @WithSpan(kind = SpanKind.INTERNAL)
     private <T extends VisitableElement, R extends RuleOutput<R>> R executeRulesInParallel(
-            List<String> ruleClassNames,
+            @SpanAttribute List<String> ruleClassNames,
             T element,
             Supplier<R> resultFactory
     ) {
@@ -390,29 +364,35 @@ public class RuleService {
      * @return a CompletableFuture containing the rule's execution result
      */
     @SuppressWarnings("unchecked")
+    @WithSpan(kind = SpanKind.INTERNAL)
     private <T extends VisitableElement, R extends RuleOutput<R>> CompletableFuture<R> executeRule(
             IRule<?, ?> rule,
             T element,
             Supplier<R> resultFactory
     ) {
+        // OpenTelemetry context propagation setup
+        Context parentOtelContext = io.opentelemetry.context.Context.current();
+
         return CompletableFuture.supplyAsync(() -> {
-            String ruleName = rule.getClass().getSimpleName();
-            log.debug("Executing rule: {}", ruleName);
+            try (Scope scope = parentOtelContext.makeCurrent()) {
+                String ruleName = rule.getClass().getSimpleName();
+                log.debug("Executing rule: {}", ruleName);
 
-            R result = resultFactory.get();
+                R result = resultFactory.get();
 
-            try {
-                // Perform a type-safe cast to the specific generic parameter types needed for this rule execution
-                // This cast is guaranteed to be safe because the precomputed graph ensures type compatibility
-                IRule<T, R> typedRule = (IRule<T, R>) rule;
+                try {
+                    // Perform a type-safe cast to the specific generic parameter types needed for this rule execution
+                    // This cast is guaranteed to be safe because the precomputed graph ensures type compatibility
+                    IRule<T, R> typedRule = (IRule<T, R>) rule;
 
-                // Execute the rule's processing logic with the input element and result container
-                typedRule.process(element, result);
-                log.debug("Rule {} execution completed successfully", ruleName);
-                return result;
-            } catch (Exception e) {
-                log.error("Rule {} execution failed: {}", ruleName, e.getMessage(), e);
-                throw new RuntimeException("Rule execution failed: " + e.getMessage(), e);
+                    // Execute the rule's processing logic with the input element and result container
+                    typedRule.process(element, result);
+                    log.debug("Rule {} execution completed successfully", ruleName);
+                    return result;
+                } catch (Exception e) {
+                    log.error("Rule {} execution failed: {}", ruleName, e.getMessage(), e);
+                    throw new RuntimeException("Rule execution failed: " + e.getMessage(), e);
+                }
             }
         });
     }
@@ -437,6 +417,7 @@ public class RuleService {
      * @param <R>           result type extending RuleOutput
      * @return a single merged result containing the combined output of all rules
      */
+    @WithSpan(kind = SpanKind.INTERNAL)
     private <R extends RuleOutput<R>> R mergeResults(
             List<CompletableFuture<R>> resultFutures,
             Supplier<R> resultFactory

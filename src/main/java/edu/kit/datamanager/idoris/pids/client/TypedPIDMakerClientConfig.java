@@ -18,6 +18,8 @@ package edu.kit.datamanager.idoris.pids.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.kit.datamanager.idoris.configuration.TypedPIDMakerConfig;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
@@ -63,7 +65,10 @@ public class TypedPIDMakerClientConfig {
      */
     @Bean
     @WithSpan(kind = SpanKind.CLIENT)
+    @Timed(value = "typedPIDMakerClientConfig.createClient", description = "Time taken to create TypedPIDMakerClient", histogram = true)
+    @Counted(value = "typedPIDMakerClientConfig.createClient.count", description = "Number of TypedPIDMakerClient creations")
     public TypedPIDMakerClient typedPIDMakerClient(TypedPIDMakerConfig config, ObjectMapper objectMapper) {
+        log.info("Creating TypedPIDMakerClient with base URL: {}", config.getBaseUrl());
         // Create a client HTTP request factory with the configured timeout
         ClientHttpRequestFactory requestFactory = new DecodingClientHttpRequestFactory(new SimpleClientHttpRequestFactory());
 
@@ -147,7 +152,9 @@ public class TypedPIDMakerClientConfig {
                 .builderFor(RestClientAdapter.create(restClient))
                 .build();
 
-        return factory.createClient(TypedPIDMakerClient.class);
+        TypedPIDMakerClient client = factory.createClient(TypedPIDMakerClient.class);
+        log.info("Successfully created TypedPIDMakerClient for base URL: {}", config.getBaseUrl());
+        return client;
     }
 
     /**

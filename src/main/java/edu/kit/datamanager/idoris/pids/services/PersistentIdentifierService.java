@@ -24,7 +24,11 @@ import edu.kit.datamanager.idoris.pids.client.model.PIDRecordEntry;
 import edu.kit.datamanager.idoris.pids.entities.PersistentIdentifier;
 import edu.kit.datamanager.idoris.pids.repositories.PersistentIdentifierRepository;
 import edu.kit.datamanager.idoris.pids.utils.PIDRecordMapper;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +47,7 @@ import java.util.Optional;
  */
 @Service
 @Slf4j
-@Observed
+@Observed(contextualName = "persistentIdentifierService")
 public class PersistentIdentifierService {
 
     private final PersistentIdentifierRepository repository;
@@ -79,8 +83,10 @@ public class PersistentIdentifierService {
      * @return The created PersistentIdentifier
      */
     @Transactional
-    @WithSpan
-    public PersistentIdentifier createPersistentIdentifier(AdministrativeMetadata entity) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "persistentIdentifierService.createPersistentIdentifier", description = "Time taken to create a persistent identifier", histogram = true)
+    @Counted(value = "persistentIdentifierService.createPersistentIdentifier.count", description = "Number of persistent identifier creations")
+    public PersistentIdentifier createPersistentIdentifier(@SpanAttribute AdministrativeMetadata entity) {
         log.debug("Creating PersistentIdentifier for entity: {}", entity);
 
         // Check if a PID already exists for this entity
@@ -154,8 +160,10 @@ public class PersistentIdentifierService {
      * @return The updated PersistentIdentifier, or empty if no PID exists for the entity
      */
     @Transactional
-    @WithSpan
-    public Optional<PersistentIdentifier> markAsTombstone(AdministrativeMetadata entity) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "persistentIdentifierService.markAsTombstone", description = "Time taken to mark persistent identifier as tombstone", histogram = true)
+    @Counted(value = "persistentIdentifierService.markAsTombstone.count", description = "Number of persistent identifiers marked as tombstone")
+    public Optional<PersistentIdentifier> markAsTombstone(@SpanAttribute AdministrativeMetadata entity) {
         log.debug("Marking PersistentIdentifier as tombstone for entity: {}", entity);
 
         // Find the PID for the entity
@@ -188,8 +196,10 @@ public class PersistentIdentifierService {
      * @return The updated PersistentIdentifier
      */
     @Transactional
-    @WithSpan
-    public PersistentIdentifier updatePIDRecord(PersistentIdentifier pid) {
+    @WithSpan(kind = SpanKind.CLIENT)
+    @Timed(value = "persistentIdentifierService.updatePIDRecord", description = "Time taken to update PID record", histogram = true)
+    @Counted(value = "persistentIdentifierService.updatePIDRecord.count", description = "Number of PID record updates")
+    public PersistentIdentifier updatePIDRecord(@SpanAttribute PersistentIdentifier pid) {
         log.debug("Updating PID record for PersistentIdentifier: {}", pid);
 
         // Create a PID record with metadata from the entity
@@ -227,7 +237,10 @@ public class PersistentIdentifierService {
      * @param entity The entity to get the PID for
      * @return An Optional containing the PersistentIdentifier if found, or empty if not found
      */
-    public Optional<PersistentIdentifier> getPersistentIdentifier(AdministrativeMetadata entity) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "persistentIdentifierService.getPersistentIdentifierByEntity", description = "Time taken to get persistent identifier by entity", histogram = true)
+    @Counted(value = "persistentIdentifierService.getPersistentIdentifierByEntity.count", description = "Number of get persistent identifier by entity requests")
+    public Optional<PersistentIdentifier> getPersistentIdentifier(@SpanAttribute AdministrativeMetadata entity) {
         log.debug("Getting PersistentIdentifier for entity: {}", entity);
         return repository.findByEntityInternalId(entity.getInternalId());
     }
@@ -238,7 +251,10 @@ public class PersistentIdentifierService {
      * @param pid The PID to get the PersistentIdentifier for
      * @return An Optional containing the PersistentIdentifier if found, or empty if not found
      */
-    public Optional<PersistentIdentifier> getPersistentIdentifier(String pid) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "persistentIdentifierService.getPersistentIdentifierByPid", description = "Time taken to get persistent identifier by PID", histogram = true)
+    @Counted(value = "persistentIdentifierService.getPersistentIdentifierByPid.count", description = "Number of get persistent identifier by PID requests")
+    public Optional<PersistentIdentifier> getPersistentIdentifier(@SpanAttribute("pid.value") String pid) {
         log.debug("Getting PersistentIdentifier with PID: {}", pid);
         return repository.findById(pid);
     }
@@ -248,9 +264,14 @@ public class PersistentIdentifierService {
      *
      * @return A list of all PersistentIdentifiers
      */
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "persistentIdentifierService.getAllPersistentIdentifiers", description = "Time taken to get all persistent identifiers", histogram = true)
+    @Counted(value = "persistentIdentifierService.getAllPersistentIdentifiers.count", description = "Number of get all persistent identifiers requests")
     public List<PersistentIdentifier> getAllPersistentIdentifiers() {
         log.debug("Getting all PersistentIdentifiers");
-        return repository.findAll();
+        List<PersistentIdentifier> pids = repository.findAll();
+        log.info("Retrieved {} persistent identifiers", pids.size());
+        return pids;
     }
 
     /**
@@ -259,9 +280,14 @@ public class PersistentIdentifierService {
      * @param entityType The type of entity to get PIDs for
      * @return A list of PersistentIdentifiers for entities of the given type
      */
-    public List<PersistentIdentifier> getPersistentIdentifiersByEntityType(String entityType) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "persistentIdentifierService.getPersistentIdentifiersByEntityType", description = "Time taken to get persistent identifiers by entity type", histogram = true)
+    @Counted(value = "persistentIdentifierService.getPersistentIdentifiersByEntityType.count", description = "Number of get persistent identifiers by entity type requests")
+    public List<PersistentIdentifier> getPersistentIdentifiersByEntityType(@SpanAttribute("entity.type") String entityType) {
         log.debug("Getting PersistentIdentifiers for entity type: {}", entityType);
-        return repository.findByEntityType(entityType);
+        List<PersistentIdentifier> pids = repository.findByEntityType(entityType);
+        log.info("Retrieved {} persistent identifiers for entity type: {}", pids.size(), entityType);
+        return pids;
     }
 
     /**
@@ -269,8 +295,13 @@ public class PersistentIdentifierService {
      *
      * @return A list of PersistentIdentifiers that are tombstones
      */
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "persistentIdentifierService.getTombstones", description = "Time taken to get tombstone persistent identifiers", histogram = true)
+    @Counted(value = "persistentIdentifierService.getTombstones.count", description = "Number of get tombstone persistent identifiers requests")
     public List<PersistentIdentifier> getTombstones() {
         log.debug("Getting tombstone PersistentIdentifiers");
-        return repository.findByTombstoneTrue();
+        List<PersistentIdentifier> tombstones = repository.findByTombstoneTrue();
+        log.info("Retrieved {} tombstone persistent identifiers", tombstones.size());
+        return tombstones;
     }
 }

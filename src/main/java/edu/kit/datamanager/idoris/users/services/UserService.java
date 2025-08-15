@@ -19,6 +19,7 @@ package edu.kit.datamanager.idoris.users.services;
 import edu.kit.datamanager.idoris.users.entities.ORCiDUser;
 import edu.kit.datamanager.idoris.users.entities.TextUser;
 import edu.kit.datamanager.idoris.users.entities.User;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 
 import java.net.URL;
 import java.util.List;
@@ -43,7 +44,7 @@ public interface UserService {
      * @param id The PID or internal ID of the user
      * @return Optional containing the user if found, empty otherwise
      */
-    Optional<User> findUserById(String id);
+    Optional<User> findUserById(@SpanAttribute("user.id") String id);
 
     /**
      * Find all TextUsers in the system.
@@ -58,7 +59,7 @@ public interface UserService {
      * @param email The email of the TextUser
      * @return Optional containing the TextUser if found, empty otherwise
      */
-    Optional<TextUser> findTextUserByEmail(String email);
+    Optional<TextUser> findTextUserByEmail(@SpanAttribute("user.email") String email);
 
     /**
      * Find all ORCiDUsers in the system.
@@ -73,7 +74,7 @@ public interface UserService {
      * @param orcid The ORCID of the user
      * @return Optional containing the ORCiDUser if found, empty otherwise
      */
-    Optional<ORCiDUser> findORCiDUserByORCiD(URL orcid);
+    Optional<ORCiDUser> findORCiDUserByORCiD(@SpanAttribute("user.orcid") URL orcid);
 
     /**
      * Create a new TextUser.
@@ -81,7 +82,7 @@ public interface UserService {
      * @param user The TextUser to create
      * @return The created TextUser
      */
-    TextUser createTextUser(TextUser user);
+    TextUser createTextUser(@SpanAttribute TextUser user);
 
     /**
      * Create a new ORCiDUser.
@@ -89,7 +90,7 @@ public interface UserService {
      * @param user The ORCiDUser to create
      * @return The created ORCiDUser
      */
-    ORCiDUser createORCiDUser(ORCiDUser user);
+    ORCiDUser createORCiDUser(@SpanAttribute ORCiDUser user);
 
     /**
      * Update an existing user.
@@ -99,7 +100,7 @@ public interface UserService {
      * @return The updated user
      * @throws IllegalArgumentException if the user is not found
      */
-    User updateUser(String id, User user);
+    User updateUser(@SpanAttribute("user.id") String id, @SpanAttribute User user);
 
     /**
      * Delete a user by their PID or internal ID.
@@ -107,5 +108,5 @@ public interface UserService {
      * @param id The PID or internal ID of the user to delete
      * @throws IllegalArgumentException if the user is not found
      */
-    void deleteUser(String id);
+    void deleteUser(@SpanAttribute("user.id") String id);
 }

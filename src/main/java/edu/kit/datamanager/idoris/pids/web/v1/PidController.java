@@ -19,6 +19,12 @@ import edu.kit.datamanager.idoris.pids.entities.PersistentIdentifier;
 import edu.kit.datamanager.idoris.pids.services.PersistentIdentifierService;
 import edu.kit.datamanager.idoris.pids.web.api.IPidApi;
 import edu.kit.datamanager.idoris.pids.web.hateoas.PersistentIdentifierModelAssembler;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +55,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @RestController
 @RequestMapping("/v1/pid")
 @Slf4j
+@Observed(contextualName = "pidController")
 @Tag(name = "Persistent Identifier", description = "API for accessing Persistent Identifiers (PIDs)")
 public class PidController implements IPidApi {
 
@@ -74,6 +81,9 @@ public class PidController implements IPidApi {
      */
     @Override
     @GetMapping
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "pidController.getAllPersistentIdentifiers", description = "Time taken to get all persistent identifiers", histogram = true)
+    @Counted(value = "pidController.getAllPersistentIdentifiers.count", description = "Number of get all persistent identifiers requests")
     public ResponseEntity<CollectionModel<EntityModel<PersistentIdentifier>>> getAllPersistentIdentifiers() {
         log.debug("Getting all PersistentIdentifiers");
         List<EntityModel<PersistentIdentifier>> pids = pidService.getAllPersistentIdentifiers().stream()
@@ -85,6 +95,7 @@ public class PidController implements IPidApi {
                 linkTo(methodOn(PidController.class).getAllPersistentIdentifiers()).withSelfRel()
         );
 
+        log.info("Retrieved {} persistent identifiers", pids.size());
         return ResponseEntity.ok(collectionModel);
     }
 
@@ -98,7 +109,10 @@ public class PidController implements IPidApi {
      */
     @Override
     @GetMapping("/{pidValue}")
-    public ResponseEntity<Void> redirectToEntity(@PathVariable("pidValue") String pidValue) {
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "pidController.redirectToEntity", description = "Time taken to redirect to entity", histogram = true)
+    @Counted(value = "pidController.redirectToEntity.count", description = "Number of redirect to entity requests")
+    public ResponseEntity<Void> redirectToEntity(@SpanAttribute("pid.value") @PathVariable("pidValue") String pidValue) {
         log.debug("Redirecting PID: {}", pidValue);
 
         // Get the PersistentIdentifier for the given PID
@@ -142,7 +156,10 @@ public class PidController implements IPidApi {
      */
     @Override
     @GetMapping("/tombstone/{pidValue}")
-    public ResponseEntity<String> handleTombstone(@PathVariable("pidValue") String pidValue) {
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "pidController.handleTombstone", description = "Time taken to handle tombstone request", histogram = true)
+    @Counted(value = "pidController.handleTombstone.count", description = "Number of tombstone requests")
+    public ResponseEntity<String> handleTombstone(@SpanAttribute("pid.value") @PathVariable("pidValue") String pidValue) {
         log.debug("Handling tombstone request for PID: {}", pidValue);
 
         // Get the PersistentIdentifier for the given PID
@@ -166,6 +183,7 @@ public class PidController implements IPidApi {
         String message = String.format("The entity with PID %s has been deleted at %s. Entity type: %s",
                 pidValue, pid.getDeletedAt(), pid.getEntityType());
         log.debug("Returning tombstone message: {}", message);
+        log.info("Served tombstone for PID: {}", pidValue);
         return ResponseEntity.status(HttpStatus.GONE)
                 .body(message);
     }

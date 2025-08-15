@@ -23,6 +23,10 @@ import edu.kit.datamanager.idoris.pids.client.model.PIDRecord;
 import edu.kit.datamanager.idoris.pids.client.model.PIDRecordEntry;
 import edu.kit.datamanager.idoris.pids.entities.PersistentIdentifier;
 import edu.kit.datamanager.idoris.users.entities.ORCiDUser;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -41,6 +45,7 @@ import java.util.List;
  */
 @Component
 @Slf4j
+@Observed(contextualName = "pidRecordMapper")
 public class PIDRecordMapper {
 
     private final ApplicationProperties applicationProperties;
@@ -65,7 +70,9 @@ public class PIDRecordMapper {
      * @param pid The PersistentIdentifier to convert
      * @return The converted PIDRecord
      */
-    public PIDRecord toPIDRecord(PersistentIdentifier pid) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    public PIDRecord toPIDRecord(@SpanAttribute PersistentIdentifier pid) {
+        log.debug("Converting PersistentIdentifier to PIDRecord: {}", pid.getPid());
         List<PIDRecordEntry> recordEntries = new ArrayList<>();
         AdministrativeMetadata entity = pid.getEntity();
 
@@ -176,7 +183,9 @@ public class PIDRecordMapper {
      *
      * @return The base URL
      */
+    @WithSpan(kind = SpanKind.INTERNAL)
     private String getBaseUrl() {
+        log.debug("Getting base URL from application properties");
         String baseUrl = applicationProperties.getBaseUrl();
         if (baseUrl == null || baseUrl.trim().isEmpty()) {
             log.error("Base URL is not configured or is empty.");
@@ -185,6 +194,7 @@ public class PIDRecordMapper {
         if (baseUrl.endsWith("/")) {
             baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
         }
+        log.debug("Using base URL: {}", baseUrl);
         return baseUrl;
     }
 }

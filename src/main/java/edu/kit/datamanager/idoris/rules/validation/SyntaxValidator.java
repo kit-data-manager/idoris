@@ -29,18 +29,19 @@ import edu.kit.datamanager.idoris.operations.entities.enums.ExecutionMode;
 import edu.kit.datamanager.idoris.rules.logic.Rule;
 import edu.kit.datamanager.idoris.rules.logic.RuleTask;
 import edu.kit.datamanager.idoris.technologyinterfaces.entities.TechnologyInterface;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
 
 import static edu.kit.datamanager.idoris.rules.logic.OutputMessage.MessageSeverity.*;
 
-/**
- * Rule-based validator that checks syntax constraints for entities.
- * This validator ensures that entities follow the required syntax rules
- * for better usability and correctness.
- */
 @Slf4j
+@Observed(contextualName = "syntaxValidator")
 @Rule(
         appliesTo = {
                 AtomicDataType.class,
@@ -66,6 +67,7 @@ public class SyntaxValidator extends ValidationVisitor {
      * @return ValidationResult containing any validation errors
      */
     @Override
+    @WithSpan(kind = SpanKind.INTERNAL)
     public ValidationResult visit(Attribute attribute, Object... args) {
         ValidationResult result = new ValidationResult();
 
@@ -113,6 +115,9 @@ public class SyntaxValidator extends ValidationVisitor {
      * @return ValidationResult containing any validation errors
      */
     @Override
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "rules.syntaxValidator.visitAttributeMapping", description = "Time to validate syntax for AttributeMapping", histogram = true)
+    @Counted(value = "rules.syntaxValidator.visitAttributeMapping.count", description = "Number of AttributeMapping syntax validations")
     public ValidationResult visit(AttributeMapping attributeMapping, Object... args) {
         ValidationResult result = new ValidationResult();
 
@@ -168,6 +173,9 @@ public class SyntaxValidator extends ValidationVisitor {
      * @return ValidationResult containing any validation errors
      */
     @Override
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "rules.syntaxValidator.visitAtomicDataType", description = "Time to validate syntax for AtomicDataType", histogram = true)
+    @Counted(value = "rules.syntaxValidator.visitAtomicDataType.count", description = "Number of AtomicDataType syntax validations")
     public ValidationResult visit(AtomicDataType atomicDataType, Object... args) {
         ValidationResult result = new ValidationResult();
 
@@ -209,6 +217,9 @@ public class SyntaxValidator extends ValidationVisitor {
      * @return ValidationResult containing any validation errors
      */
     @Override
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "rules.syntaxValidator.visitTypeProfile", description = "Time to validate syntax for TypeProfile", histogram = true)
+    @Counted(value = "rules.syntaxValidator.visitTypeProfile.count", description = "Number of TypeProfile syntax validations")
     public ValidationResult visit(TypeProfile typeProfile, Object... args) {
         ValidationResult result = new ValidationResult();
 
@@ -230,6 +241,9 @@ public class SyntaxValidator extends ValidationVisitor {
      * @return ValidationResult containing any validation errors
      */
     @Override
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "rules.syntaxValidator.visitOperation", description = "Time to validate syntax for Operation", histogram = true)
+    @Counted(value = "rules.syntaxValidator.visitOperation.count", description = "Number of Operation syntax validations")
     public ValidationResult visit(Operation operation, Object... args) {
         ValidationResult result = new ValidationResult();
 
@@ -268,6 +282,9 @@ public class SyntaxValidator extends ValidationVisitor {
      * @return ValidationResult containing any validation errors
      */
     @Override
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "rules.syntaxValidator.visitOperationStep", description = "Time to validate syntax for OperationStep", histogram = true)
+    @Counted(value = "rules.syntaxValidator.visitOperationStep.count", description = "Number of OperationStep syntax validations")
     public ValidationResult visit(OperationStep operationStep, Object... args) {
         ValidationResult result = new ValidationResult();
 
@@ -303,6 +320,9 @@ public class SyntaxValidator extends ValidationVisitor {
      * @return ValidationResult containing any validation errors
      */
     @Override
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "rules.syntaxValidator.visitTechnologyInterface", description = "Time to validate syntax for TechnologyInterface", histogram = true)
+    @Counted(value = "rules.syntaxValidator.visitTechnologyInterface.count", description = "Number of TechnologyInterface syntax validations")
     public ValidationResult visit(TechnologyInterface technologyInterface, Object... args) {
         ValidationResult result = new ValidationResult();
 
@@ -330,6 +350,9 @@ public class SyntaxValidator extends ValidationVisitor {
      * @param dataType The data type to validate
      * @param result   The validation result to add messages to
      */
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "rules.syntaxValidator.validateDataType", description = "Time to validate common data type properties", histogram = true)
+    @Counted(value = "rules.syntaxValidator.validateDataType.count", description = "Number of data type property validations")
     private void validateDataType(DataType dataType, ValidationResult result) {
         if (dataType.getName() == null || dataType.getName().isEmpty()) {
             result.addMessage("For better human readability and understanding, you MUST provide a name for the data type.",

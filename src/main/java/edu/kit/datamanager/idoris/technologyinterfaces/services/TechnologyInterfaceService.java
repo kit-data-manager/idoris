@@ -19,6 +19,12 @@ package edu.kit.datamanager.idoris.technologyinterfaces.services;
 import edu.kit.datamanager.idoris.core.events.EventPublisherService;
 import edu.kit.datamanager.idoris.technologyinterfaces.dao.ITechnologyInterfaceDao;
 import edu.kit.datamanager.idoris.technologyinterfaces.entities.TechnologyInterface;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +39,7 @@ import java.util.Optional;
  */
 @Service
 @Slf4j
+@Observed(contextualName = "technologyInterfaceService")
 public class TechnologyInterfaceService {
     private final ITechnologyInterfaceDao technologyInterfaceDao;
     private final EventPublisherService eventPublisher;
@@ -55,7 +62,10 @@ public class TechnologyInterfaceService {
      * @return the created TechnologyInterface entity
      */
     @Transactional
-    public TechnologyInterface createTechnologyInterface(TechnologyInterface technologyInterface) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "technologyInterfaceService.createTechnologyInterface", description = "Time taken to create a technology interface", histogram = true)
+    @Counted(value = "technologyInterfaceService.createTechnologyInterface.count", description = "Number of technology interface creations")
+    public TechnologyInterface createTechnologyInterface(@SpanAttribute TechnologyInterface technologyInterface) {
         log.debug("Creating TechnologyInterface: {}", technologyInterface);
         TechnologyInterface saved = technologyInterfaceDao.save(technologyInterface);
         eventPublisher.publishEntityCreated(saved);
@@ -71,7 +81,10 @@ public class TechnologyInterfaceService {
      * @throws IllegalArgumentException if the TechnologyInterface does not exist
      */
     @Transactional
-    public TechnologyInterface updateTechnologyInterface(TechnologyInterface technologyInterface) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "technologyInterfaceService.updateTechnologyInterface", description = "Time taken to update a technology interface", histogram = true)
+    @Counted(value = "technologyInterfaceService.updateTechnologyInterface.count", description = "Number of technology interface updates")
+    public TechnologyInterface updateTechnologyInterface(@SpanAttribute TechnologyInterface technologyInterface) {
         log.debug("Updating TechnologyInterface: {}", technologyInterface);
 
         if (technologyInterface.getId() == null || technologyInterface.getId().isEmpty()) {
@@ -97,7 +110,10 @@ public class TechnologyInterfaceService {
      * @throws IllegalArgumentException if the TechnologyInterface does not exist
      */
     @Transactional
-    public void deleteTechnologyInterface(String id) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "technologyInterfaceService.deleteTechnologyInterface", description = "Time taken to delete a technology interface", histogram = true)
+    @Counted(value = "technologyInterfaceService.deleteTechnologyInterface.count", description = "Number of technology interface deletions")
+    public void deleteTechnologyInterface(@SpanAttribute("technologyInterface.id") String id) {
         log.debug("Deleting TechnologyInterface with ID: {}", id);
 
         TechnologyInterface technologyInterface = technologyInterfaceDao.findById(id)
@@ -115,7 +131,10 @@ public class TechnologyInterfaceService {
      * @return an Optional containing the TechnologyInterface, or empty if not found
      */
     @Transactional(readOnly = true)
-    public Optional<TechnologyInterface> getTechnologyInterface(String id) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "technologyInterfaceService.getTechnologyInterface", description = "Time taken to get a technology interface", histogram = true)
+    @Counted(value = "technologyInterfaceService.getTechnologyInterface.count", description = "Number of technology interface retrievals")
+    public Optional<TechnologyInterface> getTechnologyInterface(@SpanAttribute("technologyInterface.id") String id) {
         log.debug("Retrieving TechnologyInterface with ID: {}", id);
         return technologyInterfaceDao.findById(id);
     }
@@ -126,9 +145,14 @@ public class TechnologyInterfaceService {
      * @return a list of all TechnologyInterface entities
      */
     @Transactional(readOnly = true)
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "technologyInterfaceService.getAllTechnologyInterfaces", description = "Time taken to get all technology interfaces", histogram = true)
+    @Counted(value = "technologyInterfaceService.getAllTechnologyInterfaces.count", description = "Number of get all technology interfaces requests")
     public List<TechnologyInterface> getAllTechnologyInterfaces() {
         log.debug("Retrieving all TechnologyInterfaces");
-        return technologyInterfaceDao.findAll();
+        List<TechnologyInterface> interfaces = technologyInterfaceDao.findAll();
+        log.info("Retrieved {} technology interfaces", interfaces.size());
+        return interfaces;
     }
 
     /**
@@ -140,7 +164,10 @@ public class TechnologyInterfaceService {
      * @throws IllegalArgumentException if the TechnologyInterface does not exist
      */
     @Transactional
-    public TechnologyInterface patchTechnologyInterface(String id, TechnologyInterface technologyInterfacePatch) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "technologyInterfaceService.patchTechnologyInterface", description = "Time taken to patch a technology interface", histogram = true)
+    @Counted(value = "technologyInterfaceService.patchTechnologyInterface.count", description = "Number of technology interface patches")
+    public TechnologyInterface patchTechnologyInterface(@SpanAttribute("technologyInterface.id") String id, @SpanAttribute TechnologyInterface technologyInterfacePatch) {
         log.debug("Patching TechnologyInterface with ID: {}, patch: {}", id, technologyInterfacePatch);
         if (id == null || id.isEmpty()) {
             throw new IllegalArgumentException("TechnologyInterface ID cannot be null or empty");

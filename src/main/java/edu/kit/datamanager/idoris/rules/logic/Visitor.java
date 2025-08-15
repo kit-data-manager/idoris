@@ -23,6 +23,7 @@ import edu.kit.datamanager.idoris.operations.entities.AttributeMapping;
 import edu.kit.datamanager.idoris.operations.entities.Operation;
 import edu.kit.datamanager.idoris.operations.entities.OperationStep;
 import edu.kit.datamanager.idoris.technologyinterfaces.entities.TechnologyInterface;
+import io.micrometer.observation.annotation.Observed;
 import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,6 +51,7 @@ import java.util.function.Supplier;
  * @param <T> the type of rule output produced by this visitor, must extend RuleOutput<T>
  */
 @Slf4j
+@Observed
 public abstract class Visitor<T extends RuleOutput<T>> {
     /**
      * Set to track visited element IDs to detect cycles in the visitation graph
@@ -87,6 +89,17 @@ public abstract class Visitor<T extends RuleOutput<T>> {
         return notAllowed(attribute);
     }
 
+    /**
+     * Handles an element of a type that is not supported by this visitor.
+     * Logs a warning and returns an empty output instance.
+     *
+     * @param element the element that is not allowed to be processed by this visitor
+     * @return an empty output instance
+     */
+    protected T notAllowed(@NotNull VisitableElement element) {
+        log.warn("Element of type {} not allowed in {}. Ignoring...", element.getClass().getSimpleName(), this.getClass().getSimpleName());
+        return outputFactory.get();
+    }
 
     /**
      * Visits an AttributeMapping element and processes it.
@@ -200,18 +213,6 @@ public abstract class Visitor<T extends RuleOutput<T>> {
      */
     protected T handleCircle(String id) {
         return outputFactory.get().addMessage("Cycle detected", OutputMessage.MessageSeverity.ERROR, id);
-    }
-
-    /**
-     * Handles an element of a type that is not supported by this visitor.
-     * Logs a warning and returns an empty output instance.
-     *
-     * @param element the element that is not allowed to be processed by this visitor
-     * @return an empty output instance
-     */
-    protected T notAllowed(@NotNull VisitableElement element) {
-        log.warn("Element of type {} not allowed in {}. Ignoring...", element.getClass().getSimpleName(), this.getClass().getSimpleName());
-        return outputFactory.get();
     }
 
     /**

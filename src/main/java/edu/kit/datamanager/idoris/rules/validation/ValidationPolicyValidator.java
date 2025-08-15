@@ -21,6 +21,11 @@ import edu.kit.datamanager.idoris.core.domain.enums.CombinationOptions;
 import edu.kit.datamanager.idoris.datatypes.entities.TypeProfile;
 import edu.kit.datamanager.idoris.rules.logic.Rule;
 import edu.kit.datamanager.idoris.rules.logic.RuleTask;
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
@@ -35,6 +40,7 @@ import static edu.kit.datamanager.idoris.rules.logic.OutputMessage.MessageSeveri
  * are followed correctly.
  */
 @Slf4j
+@Observed(contextualName = "validationPolicyValidator")
 @Rule(
         appliesTo = {
                 TypeProfile.class
@@ -53,6 +59,9 @@ public class ValidationPolicyValidator extends ValidationVisitor {
      * @return ValidationResult containing any validation errors
      */
     @Override
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "rules.validationPolicyValidator.visitTypeProfile", description = "Time to validate policy for TypeProfile", histogram = true)
+    @Counted(value = "rules.validationPolicyValidator.visitTypeProfile.count", description = "Number of TypeProfile validation policy validations")
     public ValidationResult visit(TypeProfile typeProfile, Object... args) {
         ValidationResult result = new ValidationResult();
 
@@ -134,7 +143,10 @@ public class ValidationPolicyValidator extends ValidationVisitor {
      * @param otherInformation Additional information to include
      * @return Map containing elementary information about the type profiles
      */
-    private Object getTypeProfileAndParentElementaryInformation(TypeProfile typeProfile, TypeProfile parent, Map<String, Object> otherInformation) {
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "rules.validationPolicyValidator.getElementaryInformation", description = "Time to build elementary information for validation message", histogram = true)
+    @Counted(value = "rules.validationPolicyValidator.getElementaryInformation.count", description = "Number of elementary information builds")
+    private Map<String, Object> getTypeProfileAndParentElementaryInformation(TypeProfile typeProfile, TypeProfile parent, Map<String, Object> otherInformation) {
         Map<String, Object> result = new HashMap<>();
         result.put("this", new ElementaryInformation(typeProfile.getId(), typeProfile.getName(), typeProfile.getValidationPolicy()));
         result.put("parent", new ElementaryInformation(parent.getId(), parent.getName(), parent.getValidationPolicy()));
