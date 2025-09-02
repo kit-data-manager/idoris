@@ -14,9 +14,5 @@
  * limitations under the License.
  */
 
-rootProject.name = 'idoris'
-
-//include 'build:generated:sources:annotationProcessor:java:test:annotationProcessors'
-include 'rules-processor'
-include 'rules-api'
-include 'test'
+@org.springframework.modulith.NamedInterface("users.services.api")
+package edu.kit.datamanager.idoris.users.api;

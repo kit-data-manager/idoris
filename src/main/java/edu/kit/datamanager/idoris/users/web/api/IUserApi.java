@@ -16,9 +16,8 @@
 
 package edu.kit.datamanager.idoris.users.web.api;
 
-import edu.kit.datamanager.idoris.users.entities.ORCiDUser;
-import edu.kit.datamanager.idoris.users.entities.TextUser;
-import edu.kit.datamanager.idoris.users.entities.User;
+import edu.kit.datamanager.idoris.core.domain.AdministrativeMetadata;
+import edu.kit.datamanager.idoris.core.domain.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -36,6 +35,26 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "User Management", description = "API for managing users in the system")
 public interface IUserApi {
+    /**
+     * Creates a new User entity.
+     *
+     * @param user the User entity to create
+     * @return the created User entity
+     */
+    @PostMapping
+    @Operation(
+            summary = "Create a new user",
+            description = "Creates a new user in the system",
+            responses = {
+                    @ApiResponse(responseCode = "201", description = "User created successfully",
+                            content = @Content(mediaType = "application/hal+json",
+                                    schema = @Schema(implementation = User.class))),
+                    @ApiResponse(responseCode = "400", description = "Invalid input")
+            }
+    )
+    ResponseEntity<EntityModel<User>> createUser(
+            @Parameter(description = "User to create", required = true, schema = @Schema(implementation = User.class))
+            @RequestBody User user);
 
     /**
      * Gets all User entities.
@@ -63,7 +82,7 @@ public interface IUserApi {
     @GetMapping("/{id}")
     @Operation(
             summary = "Get user by ID",
-            description = "Retrieves a user by their PID or internal ID",
+            description = "Retrieves a user by its internal ID",
             responses = {
                     @ApiResponse(responseCode = "200", description = "User retrieved successfully",
                             content = @Content(mediaType = "application/hal+json",
@@ -75,60 +94,20 @@ public interface IUserApi {
             @Parameter(description = "PID or internal ID of the User", required = true)
             @PathVariable String id);
 
-    /**
-     * Gets all TextUser entities.
-     *
-     * @return a collection of all TextUser entities
-     */
-    @GetMapping("/text")
+    @GetMapping("/{id}/contributions")
     @Operation(
-            summary = "Get all text users",
-            description = "Retrieves all text users in the system",
+            summary = "Get user contributions",
+            description = "Retrieves a list of contributions associated with the user",
             responses = {
-                    @ApiResponse(responseCode = "200", description = "Text users retrieved successfully",
+                    @ApiResponse(responseCode = "200", description = "Contributions retrieved successfully",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = TextUser.class)))
+                                    schema = @Schema(implementation = User.class))),
+                    @ApiResponse(responseCode = "404", description = "User not found")
             }
     )
-    ResponseEntity<CollectionModel<EntityModel<TextUser>>> getAllTextUsers();
-
-    /**
-     * Gets a TextUser entity by its email.
-     *
-     * @param email the email of the TextUser to retrieve
-     * @return the TextUser entity
-     */
-    @GetMapping("/text/email/{email}")
-    @Operation(
-            summary = "Get text user by email",
-            description = "Retrieves a text user by their email",
-            responses = {
-                    @ApiResponse(responseCode = "200", description = "Text user retrieved successfully",
-                            content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = TextUser.class))),
-                    @ApiResponse(responseCode = "404", description = "Text user not found")
-            }
-    )
-    ResponseEntity<EntityModel<TextUser>> getTextUserByEmail(
-            @Parameter(description = "Email of the TextUser", required = true)
-            @PathVariable String email);
-
-    /**
-     * Gets all ORCiDUser entities.
-     *
-     * @return a collection of all ORCiDUser entities
-     */
-    @GetMapping("/orcid")
-    @Operation(
-            summary = "Get all ORCID users",
-            description = "Retrieves all ORCID users in the system",
-            responses = {
-                    @ApiResponse(responseCode = "200", description = "ORCID users retrieved successfully",
-                            content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = ORCiDUser.class)))
-            }
-    )
-    ResponseEntity<CollectionModel<EntityModel<ORCiDUser>>> getAllORCiDUsers();
+    ResponseEntity<CollectionModel<AdministrativeMetadata>> getUserContributions(
+            @Parameter(description = "Internal ID of the User", required = true)
+            @PathVariable String id);
 
     /**
      * Gets an ORCiDUser entity by its ORCID.
@@ -136,60 +115,39 @@ public interface IUserApi {
      * @param orcidStr the ORCID identifier string of the ORCiDUser to retrieve
      * @return the ORCiDUser entity
      */
-    @GetMapping("/orcid/{orcidStr}")
+    @GetMapping
     @Operation(
-            summary = "Get ORCID user by ORCID",
-            description = "Retrieves an ORCID user by their ORCID identifier",
+            summary = "Get user by ORCID",
+            description = "Retrieves a user by their ORCID identifier",
             responses = {
-                    @ApiResponse(responseCode = "200", description = "ORCID user retrieved successfully",
+                    @ApiResponse(responseCode = "200", description = "User retrieved successfully",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = ORCiDUser.class))),
-                    @ApiResponse(responseCode = "404", description = "ORCID user not found")
+                                    schema = @Schema(implementation = User.class))),
+                    @ApiResponse(responseCode = "404", description = "User not found")
             }
     )
-    ResponseEntity<EntityModel<ORCiDUser>> getORCiDUserByORCiD(
-            @Parameter(description = "ORCID identifier of the ORCiDUser", required = true)
-            @PathVariable String orcidStr);
+    ResponseEntity<EntityModel<User>> getUserByORCiD(
+            @RequestParam(required = true, name = "orcid") String orcidStr);
 
     /**
-     * Creates a new TextUser entity.
+     * Gets an ORCiDUser entity by its ORCID.
      *
-     * @param user the TextUser entity to create
-     * @return the created TextUser entity
+     * @param orcidStr the ORCID identifier string of the ORCiDUser to retrieve
+     * @return the ORCiDUser entity
      */
-    @PostMapping("/text")
+    @GetMapping
     @Operation(
-            summary = "Create text user",
-            description = "Creates a new text user",
+            summary = "Get user by e-mail address",
+            description = "Retrieves a user by their e-mail address",
             responses = {
-                    @ApiResponse(responseCode = "201", description = "Text user created successfully",
+                    @ApiResponse(responseCode = "200", description = "User retrieved successfully",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = TextUser.class)))
+                                    schema = @Schema(implementation = User.class))),
+                    @ApiResponse(responseCode = "404", description = "User not found")
             }
     )
-    ResponseEntity<EntityModel<TextUser>> createTextUser(
-            @Parameter(description = "TextUser to create", required = true)
-            @RequestBody TextUser user);
-
-    /**
-     * Creates a new ORCiDUser entity.
-     *
-     * @param user the ORCiDUser entity to create
-     * @return the created ORCiDUser entity
-     */
-    @PostMapping("/orcid")
-    @Operation(
-            summary = "Create ORCID user",
-            description = "Creates a new ORCID user",
-            responses = {
-                    @ApiResponse(responseCode = "201", description = "ORCID user created successfully",
-                            content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = ORCiDUser.class)))
-            }
-    )
-    ResponseEntity<EntityModel<ORCiDUser>> createORCiDUser(
-            @Parameter(description = "ORCiDUser to create", required = true)
-            @RequestBody ORCiDUser user);
+    ResponseEntity<EntityModel<User>> getUserByEmail(
+            @RequestParam(required = true, name = "e-mail") String orcidStr);
 
     /**
      * Updates an existing User entity.
@@ -201,7 +159,7 @@ public interface IUserApi {
     @PutMapping("/{id}")
     @Operation(
             summary = "Update user",
-            description = "Updates an existing user by their PID or internal ID",
+            description = "Updates an existing user by its internal ID",
             responses = {
                     @ApiResponse(responseCode = "200", description = "User updated successfully",
                             content = @Content(mediaType = "application/hal+json",
@@ -213,6 +171,24 @@ public interface IUserApi {
             @Parameter(description = "PID or internal ID of the User", required = true)
             @PathVariable String id,
             @Parameter(description = "Updated User", required = true)
+            @RequestBody User user);
+
+    @PatchMapping("/{id}")
+    @Operation(
+            summary = "Partially update user",
+            description = "Partially updates an existing user by its internal ID",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "User updated successfully",
+                            content = @Content(mediaType = "application/hal+json",
+                                    schema = @Schema(implementation = User.class))),
+                    @ApiResponse(responseCode = "404", description = "User not found")
+            }
+    )
+    ResponseEntity<EntityModel<User>> partiallyUpdateUser(
+            @Parameter(description = "PID or internal ID of the User", required = true)
+            @PathVariable String id,
+            @Parameter(description = "User fields to update (only non-null fields will be updated)",
+                    required = true, schema = @Schema(implementation = User.class))
             @RequestBody User user);
 
     /**

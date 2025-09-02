@@ -63,7 +63,21 @@ You can access the IDORIS API at http://localhost:8095/api.
 
 ## Architecture
 
-IDORIS is built using Spring Boot and follows a modular, event-driven architecture using Spring Modulith.
+IDORIS is a Spring Modulith. Modules communicate via well-defined APIs and domain events. Each module constitutes a
+Domain Aggregate and encapsulates:
+
+- Model classes (entities and value objects)
+- DAO repositories (persistence layer)
+- Services (business logic)
+- REST controllers (web/API adapter)
+
+Module boundaries must be respected:
+
+- Access other modules only through their exported APIs; do not reference internal classes directly.
+- Domain events published by a module (e.g., from repositories/services) are defined and contained within that module;
+  other modules may subscribe.
+- The design facilitates adding alternative interfaces such as GraphQL, DOIP, and gRPC, and defining validation rules
+  via the rules modules.
 
 ### API Documentation
 
@@ -72,3 +86,16 @@ at http://localhost:8095/swagger-ui.html when the application is running.
 
 All endpoints support HATEOAS (Hypermedia as the Engine of Application State) and return HAL (Hypertext Application
 Language) responses, making the API self-discoverable.
+
+## DTO-first API and Links
+
+IDORIS uses a DTO-first public API:
+
+- Controllers accept and return DTOs only (no entities leak out of modules).
+- Each DTO includes only user-defined fields and may include:
+    - internalId: the internal database identifier (intended for internal use).
+- Responses include HATEOAS links on DTOs to discover relationship operations (e.g., link/unlink endpoints for
+  relationships like attributes, inheritsFrom, inputs/outputs) and a "pid" link relation to /pid/{pid} for stable
+  references.
+
+PID endpoints are accessible under /pid and allow redirecting to entities and viewing tombstones for deleted ones.

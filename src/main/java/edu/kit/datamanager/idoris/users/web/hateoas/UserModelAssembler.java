@@ -16,16 +16,13 @@
 
 package edu.kit.datamanager.idoris.users.web.hateoas;
 
-import edu.kit.datamanager.idoris.users.entities.ORCiDUser;
-import edu.kit.datamanager.idoris.users.entities.TextUser;
-import edu.kit.datamanager.idoris.users.entities.User;
+import edu.kit.datamanager.idoris.core.domain.User;
 import edu.kit.datamanager.idoris.users.web.v1.UserController;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.stereotype.Component;
 
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 /**
  * Assembler for converting User entities to EntityModel objects with HATEOAS links.
@@ -43,20 +40,20 @@ public class UserModelAssembler implements RepresentationModelAssembler<User, En
     public EntityModel<User> toModel(User user) {
         EntityModel<User> entityModel = EntityModel.of(user);
 
-        // Add self link
-        entityModel.add(linkTo(methodOn(UserController.class).getUserById(user.getInternalId())).withSelfRel());
+        // Add self link with affordances for update, partial update, and delete
+        entityModel.add(
+                linkTo(methodOn(UserController.class).getUserById(user.getInternalId()))
+                        .withSelfRel()
+                        .andAffordance(afford(methodOn(UserController.class).updateUser(user.getInternalId(), user)))
+                        .andAffordance(afford(methodOn(UserController.class).partiallyUpdateUser(user.getInternalId(), user)))
+                        .andAffordance(afford(methodOn(UserController.class).deleteUser(user.getInternalId())))
+        );
+
+        // Add link to contributions
+        entityModel.add(linkTo(methodOn(UserController.class).getUserContributions(user.getInternalId())).withRel("contributions"));
 
         // Add link to all users
         entityModel.add(linkTo(methodOn(UserController.class).getAllUsers()).withRel("users"));
-
-        // Add type-specific links
-        if (user instanceof TextUser) {
-            entityModel.add(linkTo(methodOn(UserController.class).getAllTextUsers()).withRel("textUsers"));
-            entityModel.add(linkTo(methodOn(UserController.class).getTextUserByEmail(((TextUser) user).getEmail())).withRel("byEmail"));
-        } else if (user instanceof ORCiDUser) {
-            entityModel.add(linkTo(methodOn(UserController.class).getAllORCiDUsers()).withRel("orcidUsers"));
-            entityModel.add(linkTo(methodOn(UserController.class).getORCiDUserByORCiD(String.valueOf(((ORCiDUser) user).getOrcid()))).withRel("byOrcid"));
-        }
 
         return entityModel;
     }

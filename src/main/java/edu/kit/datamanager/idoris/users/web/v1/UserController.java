@@ -16,10 +16,9 @@
 
 package edu.kit.datamanager.idoris.users.web.v1;
 
-import edu.kit.datamanager.idoris.users.entities.ORCiDUser;
-import edu.kit.datamanager.idoris.users.entities.TextUser;
-import edu.kit.datamanager.idoris.users.entities.User;
-import edu.kit.datamanager.idoris.users.services.UserService;
+import edu.kit.datamanager.idoris.core.domain.AdministrativeMetadata;
+import edu.kit.datamanager.idoris.core.domain.User;
+import edu.kit.datamanager.idoris.users.api.IUserService;
 import edu.kit.datamanager.idoris.users.web.api.IUserApi;
 import edu.kit.datamanager.idoris.users.web.hateoas.UserModelAssembler;
 import io.micrometer.core.annotation.Counted;
@@ -39,7 +38,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
-import java.net.URL;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -56,13 +54,33 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @Observed(contextualName = "userController")
 public class UserController implements IUserApi {
 
-    private final UserService userService;
+    private final IUserService IUserService;
     private final UserModelAssembler userModelAssembler;
 
     @Autowired
-    public UserController(UserService userService, UserModelAssembler userModelAssembler) {
-        this.userService = userService;
+    public UserController(IUserService IUserService, UserModelAssembler userModelAssembler) {
+        this.IUserService = IUserService;
         this.userModelAssembler = userModelAssembler;
+    }
+
+    @Override
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "userController.createUser", description = "Time taken to create a user", histogram = true)
+    @Counted(value = "userController.createUser.count", description = "Number of create user requests")
+    public ResponseEntity<EntityModel<User>> createUser(User user) {
+        log.debug("Creating user: {}", user);
+        return IUserService.createUser(user)
+                .map(createdUser -> {
+                    log.info("Created user with ID: {}", createdUser.getInternalId());
+                    return userModelAssembler.toModel(createdUser);
+                })
+                .map(entityModel -> ResponseEntity
+                        .created(linkTo(methodOn(UserController.class).getUserById(entityModel.getContent().getInternalId())).toUri())
+                        .body(entityModel))
+                .orElseThrow(() -> {
+                    log.error("Failed to create user");
+                    return new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to create user");
+                });
     }
 
     @Override
@@ -71,7 +89,7 @@ public class UserController implements IUserApi {
     @Counted(value = "userController.getAllUsers.count", description = "Number of get all users requests")
     public ResponseEntity<CollectionModel<EntityModel<User>>> getAllUsers() {
         log.debug("Getting all users");
-        List<EntityModel<User>> users = userService.findAllUsers().stream()
+        List<EntityModel<User>> users = IUserService.findAllUsers().stream()
                 .map(userModelAssembler::toModel)
                 .collect(Collectors.toList());
 
@@ -90,7 +108,7 @@ public class UserController implements IUserApi {
     @Counted(value = "userController.getUserById.count", description = "Number of get user by ID requests")
     public ResponseEntity<EntityModel<User>> getUserById(@SpanAttribute("user.id") String id) {
         log.debug("Getting user by ID: {}", id);
-        return userService.findUserById(id)
+        return IUserService.findUserById(id)
                 .map(user -> {
                     log.info("Found user with ID: {}", id);
                     return userModelAssembler.toModel(user);
@@ -104,132 +122,72 @@ public class UserController implements IUserApi {
 
     @Override
     @WithSpan(kind = SpanKind.SERVER)
-    @Timed(value = "userController.getAllTextUsers", description = "Time taken to get all text users", histogram = true)
-    @Counted(value = "userController.getAllTextUsers.count", description = "Number of get all text users requests")
-    public ResponseEntity<CollectionModel<EntityModel<TextUser>>> getAllTextUsers() {
-        log.debug("Getting all text users");
-        List<EntityModel<TextUser>> users = userService.findAllTextUsers().stream()
-                .map(user -> EntityModel.of(user,
-                        linkTo(methodOn(UserController.class).getTextUserByEmail(user.getEmail())).withSelfRel(),
-                        linkTo(methodOn(UserController.class).getAllTextUsers()).withRel("textUsers")))
-                .collect(Collectors.toList());
-
-        CollectionModel<EntityModel<TextUser>> collectionModel = CollectionModel.of(
-                users,
-                linkTo(methodOn(UserController.class).getAllTextUsers()).withSelfRel(),
-                linkTo(methodOn(UserController.class).getAllUsers()).withRel("users")
-        );
-
-        log.info("Retrieved {} text users", users.size());
-        return ResponseEntity.ok(collectionModel);
+    @Timed(value = "userController.getUserContributions", description = "Time taken to get user contributions", histogram = true)
+    @Counted(value = "userController.getUserContributions.count", description = "Number of get user contributions requests")
+    public ResponseEntity<CollectionModel<AdministrativeMetadata>> getUserContributions(String id) {
+        log.debug("Getting user contributions by ID: {}", id);
+        return IUserService.getContributions(id)
+                .stream()
+                .collect(Collectors.collectingAndThen(Collectors.toList(), contributions -> {
+                    CollectionModel<AdministrativeMetadata> collectionModel = CollectionModel.of(
+                            contributions,
+                            linkTo(methodOn(UserController.class).getUserContributions(id)).withSelfRel(),
+                            linkTo(methodOn(UserController.class).getUserById(id)).withRel("user")
+                    );
+                    log.info("Found {} contributions for user with ID: {}", contributions.size(), id);
+                    return ResponseEntity.ok(collectionModel);
+                }));
     }
 
     @Override
     @WithSpan(kind = SpanKind.SERVER)
-    @Timed(value = "userController.getTextUserByEmail", description = "Time taken to get a text user by email", histogram = true)
-    @Counted(value = "userController.getTextUserByEmail.count", description = "Number of get text user by email requests")
-    public ResponseEntity<EntityModel<TextUser>> getTextUserByEmail(@SpanAttribute("user.email") String email) {
-        log.debug("Getting text user by email: {}", email);
-        return userService.findTextUserByEmail(email)
+    @Timed(value = "userController.getUserByORCiD", description = "Time taken to get an user by ORCID", histogram = true)
+    @Counted(value = "userController.getUserByORCiD.count", description = "Number of get user by ORCID requests")
+    public ResponseEntity<EntityModel<User>> getUserByORCiD(@SpanAttribute("user.orcid") String orcidStr) {
+        log.debug("Getting ORCID user by ORCID: {}", orcidStr);
+        URI orcid = null;
+        // Normalize ORCiD string (id or URL) to a URI
+        final String regex = "^https?://orcid.org/(\\d{4}-\\d{4}-\\d{4}-\\d{3}[\\dX])$";
+        if (orcidStr.matches(regex)) {
+            orcid = URI.create(orcidStr);
+        } else if (orcidStr.matches("\\d{4}-\\d{4}-\\d{4}-\\d{3}[\\dX]")) {
+            orcid = URI.create("https://orcid.org/" + orcidStr);
+        } else {
+            log.error("Invalid ORCID format: {}", orcidStr);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid ORCID format: " + orcidStr);
+        }
+
+        return IUserService.findUserByORCiD(orcid)
                 .map(user -> {
-                    log.info("Found text user with email: {}", email);
-                    return EntityModel.of(user,
-                            linkTo(methodOn(UserController.class).getTextUserByEmail(email)).withSelfRel(),
-                            linkTo(methodOn(UserController.class).getAllTextUsers()).withRel("textUsers"),
-                            linkTo(methodOn(UserController.class).getAllUsers()).withRel("users"));
+                    log.info("Found ORCID user with ORCID: {}", orcidStr);
+                    return userModelAssembler.toModel(user);
                 })
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> {
-                    log.warn("Text user not found with email: {}", email);
-                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Text user not found");
+                    log.warn("ORCID user not found with ORCID: {}", orcidStr);
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "ORCID user not found");
                 });
     }
 
     @Override
     @WithSpan(kind = SpanKind.SERVER)
-    @Timed(value = "userController.getAllORCiDUsers", description = "Time taken to get all ORCID users", histogram = true)
-    @Counted(value = "userController.getAllORCiDUsers.count", description = "Number of get all ORCID users requests")
-    public ResponseEntity<CollectionModel<EntityModel<ORCiDUser>>> getAllORCiDUsers() {
-        log.debug("Getting all ORCID users");
-        List<EntityModel<ORCiDUser>> users = userService.findAllORCiDUsers().stream()
+    @Timed(value = "userController.getUserByEmail", description = "Time taken to get a user by email", histogram = true)
+    @Counted(value = "userController.getUserByEmail.count", description = "Number of get  user by email requests")
+    public ResponseEntity<EntityModel<User>> getUserByEmail(@SpanAttribute("user.email") String email) {
+        log.debug("Getting user by email: {}", email);
+        return IUserService.findUserByEmail(email)
                 .map(user -> {
-                    // Extract ORCID identifier from the URL
-                    String orcidStr = user.getOrcid().toString().replace("https://orcid.org/", "");
+                    log.info("Found user with email: {}", email);
                     return EntityModel.of(user,
-                            linkTo(methodOn(UserController.class).getORCiDUserByORCiD(orcidStr)).withSelfRel(),
-                            linkTo(methodOn(UserController.class).getAllORCiDUsers()).withRel("orcidUsers"));
+                            linkTo(methodOn(UserController.class).getUserByEmail(email)).withSelfRel(),
+                            linkTo(methodOn(UserController.class).getAllUsers()).withRel("textUsers"),
+                            linkTo(methodOn(UserController.class).getAllUsers()).withRel("users"));
                 })
-                .collect(Collectors.toList());
-
-        CollectionModel<EntityModel<ORCiDUser>> collectionModel = CollectionModel.of(
-                users,
-                linkTo(methodOn(UserController.class).getAllORCiDUsers()).withSelfRel(),
-                linkTo(methodOn(UserController.class).getAllUsers()).withRel("users")
-        );
-
-        log.info("Retrieved {} ORCID users", users.size());
-        return ResponseEntity.ok(collectionModel);
-    }
-
-    @Override
-    @WithSpan(kind = SpanKind.SERVER)
-    @Timed(value = "userController.getORCiDUserByORCiD", description = "Time taken to get an ORCID user by ORCID", histogram = true)
-    @Counted(value = "userController.getORCiDUserByORCiD.count", description = "Number of get ORCID user by ORCID requests")
-    public ResponseEntity<EntityModel<ORCiDUser>> getORCiDUserByORCiD(@SpanAttribute("user.orcid") String orcidStr) {
-        log.debug("Getting ORCID user by ORCID: {}", orcidStr);
-        try {
-            // Convert ORCID string to URL
-            URL orcid = URI.create("https://orcid.org/" + orcidStr).toURL();
-            return userService.findORCiDUserByORCiD(orcid)
-                    .map(user -> {
-                        log.info("Found ORCID user with ORCID: {}", orcidStr);
-                        return EntityModel.of(user,
-                                linkTo(methodOn(UserController.class).getORCiDUserByORCiD(orcidStr)).withSelfRel(),
-                                linkTo(methodOn(UserController.class).getAllORCiDUsers()).withRel("orcidUsers"),
-                                linkTo(methodOn(UserController.class).getAllUsers()).withRel("users"));
-                    })
-                    .map(ResponseEntity::ok)
-                    .orElseThrow(() -> {
-                        log.warn("ORCID user not found with ORCID: {}", orcidStr);
-                        return new ResponseStatusException(HttpStatus.NOT_FOUND, "ORCID user not found");
-                    });
-        } catch (java.net.MalformedURLException e) {
-            log.error("Invalid ORCID format: {}", orcidStr, e);
-            // Only catch MalformedURLException to return BAD_REQUEST
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid ORCID format: " + orcidStr, e);
-        }
-    }
-
-    @Override
-    @WithSpan(kind = SpanKind.SERVER)
-    @Timed(value = "userController.createTextUser", description = "Time taken to create a text user", histogram = true)
-    @Counted(value = "userController.createTextUser.count", description = "Number of create text user requests")
-    public ResponseEntity<EntityModel<TextUser>> createTextUser(@SpanAttribute TextUser user) {
-        log.debug("Creating text user: {}", user.getEmail());
-        TextUser createdUser = userService.createTextUser(user);
-        EntityModel<TextUser> entityModel = EntityModel.of(createdUser,
-                linkTo(methodOn(UserController.class).getTextUserByEmail(createdUser.getEmail())).withSelfRel(),
-                linkTo(methodOn(UserController.class).getAllTextUsers()).withRel("textUsers"),
-                linkTo(methodOn(UserController.class).getAllUsers()).withRel("users"));
-        log.info("Created text user with email: {}", createdUser.getEmail());
-        return ResponseEntity.status(HttpStatus.CREATED).body(entityModel);
-    }
-
-    @Override
-    @WithSpan(kind = SpanKind.SERVER)
-    @Timed(value = "userController.createORCiDUser", description = "Time taken to create an ORCID user", histogram = true)
-    @Counted(value = "userController.createORCiDUser.count", description = "Number of create ORCID user requests")
-    public ResponseEntity<EntityModel<ORCiDUser>> createORCiDUser(@SpanAttribute ORCiDUser user) {
-        log.debug("Creating ORCID user: {}", user.getOrcid());
-        ORCiDUser createdUser = userService.createORCiDUser(user);
-        // Extract ORCID identifier from the URL
-        String orcidStr = createdUser.getOrcid().toString().replace("https://orcid.org/", "");
-        EntityModel<ORCiDUser> entityModel = EntityModel.of(createdUser,
-                linkTo(methodOn(UserController.class).getORCiDUserByORCiD(orcidStr)).withSelfRel(),
-                linkTo(methodOn(UserController.class).getAllORCiDUsers()).withRel("orcidUsers"),
-                linkTo(methodOn(UserController.class).getAllUsers()).withRel("users"));
-        log.info("Created ORCID user with ORCID: {}", createdUser.getOrcid());
-        return ResponseEntity.status(HttpStatus.CREATED).body(entityModel);
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> {
+                    log.warn("User not found with email: {}", email);
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+                });
     }
 
     @Override
@@ -239,12 +197,26 @@ public class UserController implements IUserApi {
     public ResponseEntity<EntityModel<User>> updateUser(@SpanAttribute("user.id") String id, @SpanAttribute User user) {
         log.debug("Updating user with ID: {}", id);
         try {
-            User updatedUser = userService.updateUser(id, user);
+            User updatedUser = IUserService.updateUser(id, user);
             EntityModel<User> entityModel = userModelAssembler.toModel(updatedUser);
             log.info("Updated user with ID: {}", id);
             return ResponseEntity.ok(entityModel);
         } catch (IllegalArgumentException e) {
             log.error("Failed to update user with ID: {}", id, e);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    @Override
+    public ResponseEntity<EntityModel<User>> partiallyUpdateUser(String id, User user) {
+        log.debug("Partially updating user with ID: {}", id);
+        try {
+            User updatedUser = IUserService.partiallyUpdateUser(id, user);
+            EntityModel<User> entityModel = userModelAssembler.toModel(updatedUser);
+            log.info("Partially updated user with ID: {}", id);
+            return ResponseEntity.ok(entityModel);
+        } catch (IllegalArgumentException e) {
+            log.error("Failed to partially update user with ID: {}", id, e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -256,7 +228,7 @@ public class UserController implements IUserApi {
     public ResponseEntity<Void> deleteUser(@SpanAttribute("user.id") String id) {
         log.debug("Deleting user with ID: {}", id);
         try {
-            userService.deleteUser(id);
+            IUserService.deleteUser(id);
             log.info("Deleted user with ID: {}", id);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {

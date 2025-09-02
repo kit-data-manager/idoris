@@ -16,22 +16,26 @@
 
 package edu.kit.datamanager.idoris.users.dao;
 
-import edu.kit.datamanager.idoris.users.entities.User;
+import edu.kit.datamanager.idoris.core.domain.AdministrativeMetadata;
+import edu.kit.datamanager.idoris.core.domain.User;
 import org.springframework.data.neo4j.repository.Neo4jRepository;
 import org.springframework.data.neo4j.repository.query.Query;
 import org.springframework.data.repository.ListCrudRepository;
 import org.springframework.data.repository.PagingAndSortingRepository;
 
+import java.net.URI;
+import java.util.List;
+import java.util.Optional;
+
 public interface IUserDao extends Neo4jRepository<User, String>, ListCrudRepository<User, String>, PagingAndSortingRepository<User, String> {
-    @Query("MATCH (u:ORCiDUser) RETURN u")
-    Iterable<User> findAllORCiDUsers();
+    List<User> findAll();
 
-    @Query("MATCH (u:ORCiDUser) WHERE u.orcid = $orcid RETURN u")
-    User findORCiDUserByORCiD(String orcid);
+    Optional<User> findByOrcid(URI orcid);
 
-    @Query("MATCH (u:TextUser) RETURN u")
-    Iterable<User> findAllTextUsers();
+    Optional<User> findByEmail(String email);
 
-    @Query("MATCH (u:TextUser) WHERE u.email = $email RETURN u")
-    User findTextUserByEmail(String email);
+    Optional<User> findById(String id);
+
+    @Query("MATCH (u:User {internalId: $userId})<-[:contributors]-(adm:AdministrativeMetadata) RETURN adm")
+    List<AdministrativeMetadata> getContributions(String userId);
 }

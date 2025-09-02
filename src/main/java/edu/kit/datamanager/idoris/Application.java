@@ -16,41 +16,35 @@
 
 package edu.kit.datamanager.idoris;
 
-import edu.kit.datamanager.idoris.configuration.ApplicationProperties;
 import lombok.extern.java.Log;
 import org.neo4j.cypherdsl.core.renderer.Configuration;
 import org.neo4j.cypherdsl.core.renderer.Dialect;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.neo4j.config.EnableNeo4jAuditing;
 import org.springframework.data.neo4j.repository.config.EnableNeo4jRepositories;
-import org.springframework.modulith.Modulith;
+import org.springframework.modulith.Modulithic;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @SpringBootApplication
 @EnableNeo4jRepositories
 @EnableNeo4jAuditing
 @EnableTransactionManagement
+@ConfigurationPropertiesScan
 @EntityScan("edu.kit.datamanager")
-@org.springframework.context.annotation.Configuration
 @Log
-@Modulith
-public class IdorisApplication {
+@Modulithic(systemName = "IDORIS")
+@EnableAsync
+public class Application {
     public static void main(String[] args) {
-        SpringApplication.run(IdorisApplication.class, args);
-        System.out.println();
-        System.out.println("---------------------------------");
+        SpringApplication.run(Application.class, args);
+        System.out.println("\n---------------------------------");
         System.out.println("IDORIS started successfully.");
-        System.out.println("---------------------------------");
-    }
-
-    @Bean
-    @ConfigurationProperties("repo")
-    public ApplicationProperties applicationProperties() {
-        return new ApplicationProperties();
+        System.out.println("---------------------------------\n");
     }
 
     @Bean
@@ -60,20 +54,4 @@ public class IdorisApplication {
                 .withDialect(Dialect.NEO4J_5)
                 .build();
     }
-
-    // Unregister the OpenTelemetryMeterRegistry from Metrics.globalRegistry and make it available
-    // as a Spring bean instead.
-//    @Bean
-//    @ConditionalOnClass(name = "io.opentelemetry.javaagent.OpenTelemetryAgent")
-//    public MeterRegistry otelRegistry() {
-//        Optional<MeterRegistry> otelRegistry = Metrics.globalRegistry.getRegistries().stream()
-//                .filter(r -> r.getClass().getName().contains("OpenTelemetryMeterRegistry"))
-//                .findAny();
-//        otelRegistry.ifPresent(Metrics.globalRegistry::remove);
-//        return otelRegistry.orElse(null);
-//    }
-//    @Bean
-//    public MeterRegistry getMeterRegistry() {
-//        return new CompositeMeterRegistry();
-//    }
 }
