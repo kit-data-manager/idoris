@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,17 @@
  * limitations under the License.
  */
 
-package edu.kit.datamanager.idoris.users.entities;
+package edu.kit.datamanager.idoris.pids.api;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.springframework.data.neo4j.core.schema.Node;
+import edu.kit.datamanager.idoris.core.domain.valueObjects.PID;
+import org.springframework.hateoas.Link;
+import org.springframework.modulith.NamedInterface;
 
-import java.net.URL;
+import java.util.List;
 
-@Getter
-@AllArgsConstructor
-@NoArgsConstructor
-@Node("ORCiDUser")
-public final class ORCiDUser extends User {
-    @JsonProperty("orcid")
-    private URL orcid;
+@NamedInterface
+public interface IInternalPIDService {
+    List<PID> getPIDAssociatedWithInternalID(String internalId);
+
+    List<Link> getPIDLinkForInternalID(String internalId);
 }
