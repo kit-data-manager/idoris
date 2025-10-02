@@ -13,50 +13,53 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package edu.kit.datamanager.idoris.attributes.web.hateoas;
 
-import edu.kit.datamanager.idoris.attributes.entities.Attribute;
+import edu.kit.datamanager.idoris.attributes.dto.AttributeDto;
 import edu.kit.datamanager.idoris.attributes.web.v1.AttributeController;
-import edu.kit.datamanager.idoris.core.domain.web.hateoas.EntityModelAssembler;
+import io.micrometer.observation.annotation.Observed;
+import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.Link;
+import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.stereotype.Component;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 /**
- * Assembler for converting Attribute entities to EntityModel objects with HATEOAS links.
+ * Assembler that adds HATEOAS links to AttributeDto responses.
+ * Adds:
+ * - self: /v1/attributes/{id}
+ * - relations: dataType set/detach, override set/detach
  */
 @Component
-public class AttributeModelAssembler implements EntityModelAssembler<Attribute> {
+@Observed(contextualName = "attributeDtoModelAssembler")
+public class AttributeModelAssembler implements RepresentationModelAssembler<AttributeDto, EntityModel<AttributeDto>> {
 
-    /**
-     * Converts an Attribute entity to an EntityModel with HATEOAS links.
-     *
-     * @param attribute the Attribute entity to convert
-     * @return an EntityModel containing the Attribute and links
-     */
     @Override
-    public EntityModel<Attribute> toModel(Attribute attribute) {
-        EntityModel<Attribute> entityModel = toModelWithoutLinks(attribute);
+    public EntityModel<AttributeDto> toModel(AttributeDto entity) {
+        EntityModel<AttributeDto> model = EntityModel.of(entity);
 
-        // Add self link
-        entityModel.add(linkTo(methodOn(AttributeController.class).getAttribute(attribute.getId())).withSelfRel());
+        // Add collection link
+        model.add(linkTo(methodOn(AttributeController.class).list()).withRel("collection"));
 
-        // Add link to data type
-        if (attribute.getDataType() != null) {
-            entityModel.add(linkTo(methodOn(AttributeController.class).getDataType(attribute.getId())).withRel("dataType"));
-        }
+        // Relation operation links (templated with {id}) for discoverability
+        // Clients can replace {id} with their known identifier (PID or internalId)
+        String base = "/v1/attributes/{id}";
+        model.add(Link.of(base).withSelfRel().withTitle("self (templated)"));
+        model.add(Link.of(base + "/dataType").withRel("dataType:set"));
+        model.add(Link.of(base + "/dataType").withRel("dataType:detach").withTitle("DELETE"));
+        model.add(Link.of(base + "/override").withRel("override:set"));
+        model.add(Link.of(base + "/override").withRel("override:detach").withTitle("DELETE"));
 
-        // Add link to override attribute if it exists
-        if (attribute.getOverride() != null) {
-            entityModel.add(linkTo(methodOn(AttributeController.class).getAttribute(attribute.getOverride().getId())).withRel("override"));
-        }
+        return model;
+    }
 
-        // Add link to all attributes
-        entityModel.add(linkTo(methodOn(AttributeController.class).getAllAttributes()).withRel("attributes"));
-
-        return entityModel;
+    @Override
+    public CollectionModel<EntityModel<AttributeDto>> toCollectionModel(Iterable<? extends AttributeDto> entities) {
+        CollectionModel<EntityModel<AttributeDto>> collection = RepresentationModelAssembler.super.toCollectionModel(entities);
+        collection.add(linkTo(methodOn(AttributeController.class).list()).withSelfRel());
+        return collection;
     }
 }

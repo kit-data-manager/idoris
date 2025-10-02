@@ -19,7 +19,7 @@ package edu.kit.datamanager.idoris.users.api;
 import edu.kit.datamanager.idoris.core.domain.AdministrativeMetadata;
 import edu.kit.datamanager.idoris.core.domain.User;
 
-import java.net.URI;
+import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 
@@ -51,7 +51,7 @@ public interface IUserService {
      * @param orcid The ORCiD of the user
      * @return Optional containing the user if found, empty otherwise
      */
-    Optional<User> findUserByORCiD(URI orcid);
+    Optional<User> findUserByORCiD(URL orcid);
 
     /**
      * Find a user by their email address.

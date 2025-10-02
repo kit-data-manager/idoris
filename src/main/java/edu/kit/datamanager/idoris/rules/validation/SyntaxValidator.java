@@ -16,19 +16,14 @@
 
 package edu.kit.datamanager.idoris.rules.validation;
 
-import edu.kit.datamanager.idoris.attributes.entities.Attribute;
+import edu.kit.datamanager.idoris.core.domain.*;
 import edu.kit.datamanager.idoris.core.domain.enums.CombinationOptions;
-import edu.kit.datamanager.idoris.datatypes.entities.AtomicDataType;
-import edu.kit.datamanager.idoris.datatypes.entities.DataType;
-import edu.kit.datamanager.idoris.datatypes.entities.TypeProfile;
-import edu.kit.datamanager.idoris.datatypes.enums.PrimitiveDataTypes;
-import edu.kit.datamanager.idoris.operations.entities.AttributeMapping;
-import edu.kit.datamanager.idoris.operations.entities.Operation;
-import edu.kit.datamanager.idoris.operations.entities.OperationStep;
-import edu.kit.datamanager.idoris.operations.entities.enums.ExecutionMode;
+import edu.kit.datamanager.idoris.core.domain.enums.ExecutionMode;
+import edu.kit.datamanager.idoris.core.domain.enums.PrimitiveDataTypes;
+import edu.kit.datamanager.idoris.core.domain.valueObjects.AttributeMapping;
+import edu.kit.datamanager.idoris.core.domain.valueObjects.OperationStep;
 import edu.kit.datamanager.idoris.rules.logic.Rule;
 import edu.kit.datamanager.idoris.rules.logic.RuleTask;
-import edu.kit.datamanager.idoris.technologyinterfaces.entities.TechnologyInterface;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
@@ -66,22 +61,21 @@ public class SyntaxValidator extends ValidationVisitor {
      * @param args      Additional arguments (not used in this implementation)
      * @return ValidationResult containing any validation errors
      */
-    @Override
     @WithSpan(kind = SpanKind.INTERNAL)
     public ValidationResult visit(Attribute attribute, Object... args) {
         ValidationResult result = new ValidationResult();
 
-        if (attribute.getName() == null || attribute.getName().isEmpty()) {
+        if (attribute.getName() == null) {
             result.addMessage("For better human readability and understanding, you MUST provide a name for the attribute.",
                     attribute, ERROR);
         }
 
-        if (attribute.getDescription() == null || attribute.getDescription().isEmpty()) {
+        if (attribute.getDescription() == null) {
             result.addMessage("For better human readability and understanding, you SHOULD provide a description for the attribute.",
                     attribute, WARNING);
         }
 
-        if (attribute.getDataType() == null) {
+        if (attribute.getDataTypeId() == null || attribute.getDataTypeId().isBlank()) {
             result.addMessage("You MUST provide a data type for the attribute.", attribute, ERROR);
         }
 
@@ -114,7 +108,6 @@ public class SyntaxValidator extends ValidationVisitor {
      * @param args             Additional arguments (not used in this implementation)
      * @return ValidationResult containing any validation errors
      */
-    @Override
     @WithSpan(kind = SpanKind.INTERNAL)
     @Timed(value = "rules.syntaxValidator.visitAttributeMapping", description = "Time to validate syntax for AttributeMapping", histogram = true)
     @Counted(value = "rules.syntaxValidator.visitAttributeMapping.count", description = "Number of AttributeMapping syntax validations")
@@ -172,7 +165,6 @@ public class SyntaxValidator extends ValidationVisitor {
      * @param args           Additional arguments (not used in this implementation)
      * @return ValidationResult containing any validation errors
      */
-    @Override
     @WithSpan(kind = SpanKind.INTERNAL)
     @Timed(value = "rules.syntaxValidator.visitAtomicDataType", description = "Time to validate syntax for AtomicDataType", histogram = true)
     @Counted(value = "rules.syntaxValidator.visitAtomicDataType.count", description = "Number of AtomicDataType syntax validations")
@@ -210,13 +202,38 @@ public class SyntaxValidator extends ValidationVisitor {
     }
 
     /**
+     * Helper method to validate common data type properties
+     *
+     * @param dataType The data type to validate
+     * @param result   The validation result to add messages to
+     */
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "rules.syntaxValidator.validateDataType", description = "Time to validate common data type properties", histogram = true)
+    @Counted(value = "rules.syntaxValidator.validateDataType.count", description = "Number of data type property validations")
+    private void validateDataType(DataType dataType, ValidationResult result) {
+        if (dataType.getName() == null) {
+            result.addMessage("For better human readability and understanding, you MUST provide a name for the data type.",
+                    dataType, ERROR);
+        }
+
+        if (dataType.getDescription() == null) {
+            result.addMessage("For better human readability and understanding, you SHOULD provide a description for the data type.",
+                    dataType, WARNING);
+        }
+
+        if (dataType.getExpectedUseCases() == null || dataType.getExpectedUseCases().isEmpty()) {
+            result.addMessage("For better human readability and understanding, you SHOULD provide a list of expected uses for the data type.",
+                    dataType, WARNING);
+        }
+    }
+
+    /**
      * Validates syntax constraints for TypeProfile entities
      *
      * @param typeProfile The type profile to validate
      * @param args        Additional arguments (not used in this implementation)
      * @return ValidationResult containing any validation errors
      */
-    @Override
     @WithSpan(kind = SpanKind.INTERNAL)
     @Timed(value = "rules.syntaxValidator.visitTypeProfile", description = "Time to validate syntax for TypeProfile", histogram = true)
     @Counted(value = "rules.syntaxValidator.visitTypeProfile.count", description = "Number of TypeProfile syntax validations")
@@ -240,19 +257,18 @@ public class SyntaxValidator extends ValidationVisitor {
      * @param args      Additional arguments (not used in this implementation)
      * @return ValidationResult containing any validation errors
      */
-    @Override
     @WithSpan(kind = SpanKind.INTERNAL)
     @Timed(value = "rules.syntaxValidator.visitOperation", description = "Time to validate syntax for Operation", histogram = true)
     @Counted(value = "rules.syntaxValidator.visitOperation.count", description = "Number of Operation syntax validations")
     public ValidationResult visit(Operation operation, Object... args) {
         ValidationResult result = new ValidationResult();
 
-        if (operation.getName() == null || operation.getName().isEmpty()) {
+        if (operation.getName() == null) {
             result.addMessage("For better human readability and understanding, you MUST provide a name for the operation.",
                     operation, ERROR);
         }
 
-        if (operation.getDescription() == null || operation.getDescription().isEmpty()) {
+        if (operation.getDescription() == null) {
             result.addMessage("For better human readability and understanding, you SHOULD provide a description for the operation.",
                     operation, WARNING);
         }
@@ -281,7 +297,6 @@ public class SyntaxValidator extends ValidationVisitor {
      * @param args          Additional arguments (not used in this implementation)
      * @return ValidationResult containing any validation errors
      */
-    @Override
     @WithSpan(kind = SpanKind.INTERNAL)
     @Timed(value = "rules.syntaxValidator.visitOperationStep", description = "Time to validate syntax for OperationStep", histogram = true)
     @Counted(value = "rules.syntaxValidator.visitOperationStep.count", description = "Number of OperationStep syntax validations")
@@ -319,19 +334,18 @@ public class SyntaxValidator extends ValidationVisitor {
      * @param args                Additional arguments (not used in this implementation)
      * @return ValidationResult containing any validation errors
      */
-    @Override
     @WithSpan(kind = SpanKind.INTERNAL)
     @Timed(value = "rules.syntaxValidator.visitTechnologyInterface", description = "Time to validate syntax for TechnologyInterface", histogram = true)
     @Counted(value = "rules.syntaxValidator.visitTechnologyInterface.count", description = "Number of TechnologyInterface syntax validations")
     public ValidationResult visit(TechnologyInterface technologyInterface, Object... args) {
         ValidationResult result = new ValidationResult();
 
-        if (technologyInterface.getName() == null || technologyInterface.getName().isEmpty()) {
+        if (technologyInterface.getName() == null) {
             result.addMessage("For better human readability and understanding, you MUST provide a name for the operation type profile.",
                     technologyInterface, ERROR);
         }
 
-        if (technologyInterface.getDescription() == null || technologyInterface.getDescription().isEmpty()) {
+        if (technologyInterface.getDescription() == null) {
             result.addMessage("For better human readability and understanding, you SHOULD provide a description for the operation type profile.",
                     technologyInterface, WARNING);
         }
@@ -342,31 +356,5 @@ public class SyntaxValidator extends ValidationVisitor {
         }
 
         return result;
-    }
-
-    /**
-     * Helper method to validate common data type properties
-     *
-     * @param dataType The data type to validate
-     * @param result   The validation result to add messages to
-     */
-    @WithSpan(kind = SpanKind.INTERNAL)
-    @Timed(value = "rules.syntaxValidator.validateDataType", description = "Time to validate common data type properties", histogram = true)
-    @Counted(value = "rules.syntaxValidator.validateDataType.count", description = "Number of data type property validations")
-    private void validateDataType(DataType dataType, ValidationResult result) {
-        if (dataType.getName() == null || dataType.getName().isEmpty()) {
-            result.addMessage("For better human readability and understanding, you MUST provide a name for the data type.",
-                    dataType, ERROR);
-        }
-
-        if (dataType.getDescription() == null || dataType.getDescription().isEmpty()) {
-            result.addMessage("For better human readability and understanding, you SHOULD provide a description for the data type.",
-                    dataType, WARNING);
-        }
-
-        if (dataType.getExpectedUseCases() == null || dataType.getExpectedUseCases().isEmpty()) {
-            result.addMessage("For better human readability and understanding, you SHOULD provide a list of expected uses for the data type.",
-                    dataType, WARNING);
-        }
     }
 }

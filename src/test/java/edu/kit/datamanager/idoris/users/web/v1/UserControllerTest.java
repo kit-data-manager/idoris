@@ -17,10 +17,8 @@
 package edu.kit.datamanager.idoris.users.web.v1;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.kit.datamanager.idoris.users.entities.ORCiDUser;
-import edu.kit.datamanager.idoris.users.entities.TextUser;
-import edu.kit.datamanager.idoris.users.entities.User;
-import edu.kit.datamanager.idoris.users.services.UserService;
+import edu.kit.datamanager.idoris.core.domain.User;
+import edu.kit.datamanager.idoris.users.services.api.UserService;
 import edu.kit.datamanager.idoris.users.web.hateoas.UserModelAssembler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

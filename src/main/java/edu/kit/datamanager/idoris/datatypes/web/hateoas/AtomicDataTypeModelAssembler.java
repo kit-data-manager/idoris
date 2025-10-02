@@ -16,8 +16,8 @@
 
 package edu.kit.datamanager.idoris.datatypes.web.hateoas;
 
-import edu.kit.datamanager.idoris.core.domain.web.hateoas.EntityModelAssembler;
-import edu.kit.datamanager.idoris.datatypes.entities.AtomicDataType;
+import edu.kit.datamanager.idoris.core.web.hateoas.EntityModelAssembler;
+import edu.kit.datamanager.idoris.datatypes.dto.AtomicDataTypeDto;
 import edu.kit.datamanager.idoris.datatypes.web.v1.AtomicDataTypeController;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.stereotype.Component;
@@ -26,33 +26,37 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 /**
- * Assembler for converting AtomicDataType entities to EntityModel objects with HATEOAS links.
+ * Assembler for converting AtomicDataTypeDto objects to EntityModel objects with HATEOAS links.
  */
 @Component
-public class AtomicDataTypeModelAssembler implements EntityModelAssembler<AtomicDataType> {
+public class AtomicDataTypeModelAssembler implements EntityModelAssembler<AtomicDataTypeDto> {
 
     /**
-     * Converts an AtomicDataType entity to an EntityModel with HATEOAS links.
+     * Converts an AtomicDataTypeDto to an EntityModel with HATEOAS links.
      *
-     * @param atomicDataType the AtomicDataType entity to convert
-     * @return an EntityModel containing the AtomicDataType and links
+     * @param atomicDataTypeDto the AtomicDataTypeDto to convert
+     * @return an EntityModel containing the AtomicDataTypeDto and links
      */
     @Override
-    public EntityModel<AtomicDataType> toModel(AtomicDataType atomicDataType) {
-        EntityModel<AtomicDataType> entityModel = toModelWithoutLinks(atomicDataType);
+    public EntityModel<AtomicDataTypeDto> toModel(AtomicDataTypeDto atomicDataTypeDto) {
+        EntityModel<AtomicDataTypeDto> entityModel = EntityModel.of(atomicDataTypeDto);
 
         // Add self link
-        entityModel.add(linkTo(methodOn(AtomicDataTypeController.class).getAtomicDataType(atomicDataType.getId())).withSelfRel());
+        if (atomicDataTypeDto.getInternalId() != null) {
+            entityModel.add(linkTo(methodOn(AtomicDataTypeController.class).getAtomicDataType(atomicDataTypeDto.getInternalId())).withSelfRel());
+        }
 
         // Add link to all atomic data types
         entityModel.add(linkTo(methodOn(AtomicDataTypeController.class).getAllAtomicDataTypes()).withRel("atomicDataTypes"));
 
         // Add link to operations
-        entityModel.add(linkTo(methodOn(AtomicDataTypeController.class).getOperationsForAtomicDataType(atomicDataType.getId())).withRel("operations"));
+        if (atomicDataTypeDto.getInternalId() != null) {
+            entityModel.add(linkTo(methodOn(AtomicDataTypeController.class).getOperationsForAtomicDataType(atomicDataTypeDto.getInternalId())).withRel("operations"));
+        }
 
         // Add link to inherits from if present
-        if (atomicDataType.getInheritsFrom() != null) {
-            entityModel.add(linkTo(methodOn(AtomicDataTypeController.class).getAtomicDataType(atomicDataType.getInheritsFrom().getId())).withRel("inheritsFrom"));
+        if (atomicDataTypeDto.getInheritsFromId() != null) {
+            entityModel.add(linkTo(methodOn(AtomicDataTypeController.class).getAtomicDataType(atomicDataTypeDto.getInheritsFromId())).withRel("inheritsFrom"));
         }
 
         return entityModel;

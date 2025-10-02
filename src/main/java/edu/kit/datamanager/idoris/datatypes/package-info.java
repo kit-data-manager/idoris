@@ -16,13 +16,13 @@
 
 /**
  * DataTypes module for IDORIS.
- * This module contains entity definitions, domain services, and business logic related to data types.
+ * This module contains entity definitions, domain services, and business logic related data types.
  * It is responsible for managing atomic data types and their relationships.
  *
  * <p>The DataTypes module depends on the core module for base abstractions and interfaces.</p>
  */
 @org.springframework.modulith.ApplicationModule(
         displayName = "IDORIS DataTypes",
-        allowedDependencies = {"core"}
+        allowedDependencies = {"core", "attributes", "rules", "operations", "operations :: operations.services.api", "operations :: dto", "pids :: api"}
 )
 package edu.kit.datamanager.idoris.datatypes;

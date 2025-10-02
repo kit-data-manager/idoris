@@ -16,8 +16,7 @@
 
 package edu.kit.datamanager.idoris.attributes.web.api;
 
-import edu.kit.datamanager.idoris.attributes.entities.Attribute;
-import edu.kit.datamanager.idoris.datatypes.entities.DataType;
+import edu.kit.datamanager.idoris.core.domain.Attribute;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -84,15 +83,15 @@ public interface IAttributeApi {
     @GetMapping("/{id}/dataType")
     @Operation(
             summary = "Get the DataType of an Attribute",
-            description = "Returns the DataType of an Attribute",
+            description = "Returns the ID of the DataType of an Attribute",
             responses = {
                     @ApiResponse(responseCode = "200", description = "DataType found",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = DataType.class))),
+                                    schema = @Schema(implementation = String.class))),
                     @ApiResponse(responseCode = "404", description = "Attribute not found")
             }
     )
-    ResponseEntity<EntityModel<DataType>> getDataType(
+    ResponseEntity<EntityModel<String>> getDataType(
             @Parameter(description = "PID or internal ID of the Attribute", required = true)
             @PathVariable String id);
 

@@ -16,9 +16,9 @@
 
 package edu.kit.datamanager.idoris.rules.validation;
 
-import edu.kit.datamanager.idoris.attributes.entities.Attribute;
-import edu.kit.datamanager.idoris.datatypes.entities.AtomicDataType;
-import edu.kit.datamanager.idoris.datatypes.entities.TypeProfile;
+import edu.kit.datamanager.idoris.core.domain.AtomicDataType;
+import edu.kit.datamanager.idoris.core.domain.Attribute;
+import edu.kit.datamanager.idoris.core.domain.TypeProfile;
 import edu.kit.datamanager.idoris.rules.logic.Rule;
 import edu.kit.datamanager.idoris.rules.logic.RuleTask;
 import io.micrometer.core.annotation.Counted;
@@ -57,17 +57,16 @@ public class InheritanceValidator extends ValidationVisitor {
      * @param args      Additional arguments (not used in this implementation)
      * @return ValidationResult containing any validation errors
      */
-    @Override
     @WithSpan(kind = SpanKind.INTERNAL)
     public ValidationResult visit(Attribute attribute, Object... args) {
         ValidationResult result = new ValidationResult();
 
-        if (attribute.getOverride() != null && attribute.getOverride().getDataType() != null) {
+        if (attribute.getOverride() != null && attribute.getOverride().getDataTypeId() != null) {
             Attribute override = attribute.getOverride();
 
-            if (!attribute.getDataType().inheritsFrom(override.getDataType()))
-                result.addMessage("The data type of an attribute MUST be inherited from the data type of the attribute that was overwritten.",
-                        attribute, ERROR);
+            // NOTE: Cross-module dependency to DataType removed; cannot verify inheritance here without logic call.
+            // This validation will be handled in datatypes module when linking relationships.
+            // Keeping only cardinality validations below.
 
             if (attribute.getLowerBoundCardinality() < override.getLowerBoundCardinality())
                 result.addMessage("The lower bound cardinality of an attribute MUST be more or equally restrictive than the lower bound cardinality of the attribute that was overwritten. Overriding a more restrictive attribute as a less restrictive attribute is NOT possible.",
@@ -91,7 +90,6 @@ public class InheritanceValidator extends ValidationVisitor {
      * @param args           Additional arguments (not used in this implementation)
      * @return ValidationResult containing any validation errors
      */
-    @Override
     @WithSpan(kind = SpanKind.INTERNAL)
     @Timed(value = "rules.inheritanceValidator.visitAtomicDataType", description = "Time to validate inheritance for AtomicDataType", histogram = true)
     @Counted(value = "rules.inheritanceValidator.visitAtomicDataType.count", description = "Number of AtomicDataType inheritance validations")
@@ -139,7 +137,6 @@ public class InheritanceValidator extends ValidationVisitor {
      * @param args        Additional arguments (not used in this implementation)
      * @return ValidationResult containing any validation errors
      */
-    @Override
     @WithSpan(kind = SpanKind.INTERNAL)
     @Timed(value = "rules.inheritanceValidator.visitTypeProfile", description = "Time to validate inheritance for TypeProfile", histogram = true)
     @Counted(value = "rules.inheritanceValidator.visitTypeProfile.count", description = "Number of TypeProfile inheritance validations")

@@ -22,8 +22,10 @@
  * <p>The core module is a foundational module that other modules depend on.
  * It should not depend on any other module to avoid circular dependencies.</p>
  */
-@org.springframework.modulith.ApplicationModule(
+@ApplicationModule(
         displayName = "IDORIS Core",
-        allowedDependencies = {}
+        type = ApplicationModule.Type.OPEN
 )
 package edu.kit.datamanager.idoris.core;
+
+import org.springframework.modulith.ApplicationModule;

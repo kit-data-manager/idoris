@@ -16,7 +16,9 @@
 
 package edu.kit.datamanager.idoris.datatypes.web.api;
 
-import edu.kit.datamanager.idoris.datatypes.entities.AtomicDataType;
+import edu.kit.datamanager.idoris.core.domain.AtomicDataType;
+import edu.kit.datamanager.idoris.datatypes.dto.AtomicDataTypeDto;
+import edu.kit.datamanager.idoris.operations.dto.OperationResponseDto;
 import io.micrometer.observation.annotation.Observed;
 import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
@@ -51,11 +53,11 @@ public interface IAtomicDataTypeApi {
             responses = {
                     @ApiResponse(responseCode = "200", description = "AtomicDataTypes found",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = AtomicDataType.class)))
+                                    schema = @Schema(implementation = AtomicDataTypeDto.class)))
             }
     )
     @WithSpan
-    ResponseEntity<CollectionModel<EntityModel<AtomicDataType>>> getAllAtomicDataTypes();
+    ResponseEntity<CollectionModel<EntityModel<AtomicDataTypeDto>>> getAllAtomicDataTypes();
 
     /**
      * Gets an AtomicDataType entity by its PID or internal ID.
@@ -75,7 +77,7 @@ public interface IAtomicDataTypeApi {
             }
     )
     @WithSpan
-    ResponseEntity<EntityModel<AtomicDataType>> getAtomicDataType(
+    ResponseEntity<EntityModel<AtomicDataTypeDto>> getAtomicDataType(
             @SpanAttribute("atomicDataType.id")
             @Parameter(description = "PID or internal ID of the AtomicDataType", required = true)
             @PathVariable String id);
@@ -94,15 +96,15 @@ public interface IAtomicDataTypeApi {
             responses = {
                     @ApiResponse(responseCode = "201", description = "AtomicDataType created",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = AtomicDataType.class))),
+                                    schema = @Schema(implementation = AtomicDataTypeDto.class))),
                     @ApiResponse(responseCode = "400", description = "Invalid input or validation failed")
             }
     )
     @WithSpan
-    ResponseEntity<EntityModel<AtomicDataType>> createAtomicDataType(
+    ResponseEntity<EntityModel<AtomicDataTypeDto>> createAtomicDataType(
 
             @Parameter(description = "AtomicDataType to create", required = true)
-            @Valid @RequestBody AtomicDataType atomicDataType);
+            @Valid @RequestBody AtomicDataTypeDto atomicDataType);
 
     /**
      * Updates an existing AtomicDataType entity.
@@ -119,19 +121,19 @@ public interface IAtomicDataTypeApi {
             responses = {
                     @ApiResponse(responseCode = "200", description = "AtomicDataType updated",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = AtomicDataType.class))),
+                                    schema = @Schema(implementation = AtomicDataTypeDto.class))),
                     @ApiResponse(responseCode = "400", description = "Invalid input or validation failed"),
                     @ApiResponse(responseCode = "404", description = "AtomicDataType not found")
             }
     )
     @WithSpan
-    ResponseEntity<EntityModel<AtomicDataType>> updateAtomicDataType(
+    ResponseEntity<EntityModel<AtomicDataTypeDto>> updateAtomicDataType(
             @SpanAttribute("atomicDataType.id")
             @Parameter(description = "PID or internal ID of the AtomicDataType", required = true)
             @PathVariable String id,
 
             @Parameter(description = "Updated AtomicDataType", required = true)
-            @Valid @RequestBody AtomicDataType atomicDataType);
+            @Valid @RequestBody AtomicDataTypeDto atomicDataType);
 
     /**
      * Deletes an AtomicDataType entity.
@@ -167,12 +169,12 @@ public interface IAtomicDataTypeApi {
             responses = {
                     @ApiResponse(responseCode = "200", description = "Operations found",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = edu.kit.datamanager.idoris.operations.entities.Operation.class))),
+                                    schema = @Schema(implementation = OperationResponseDto.class))),
                     @ApiResponse(responseCode = "404", description = "AtomicDataType not found")
             }
     )
     @WithSpan
-    ResponseEntity<CollectionModel<EntityModel<edu.kit.datamanager.idoris.operations.entities.Operation>>> getOperationsForAtomicDataType(
+    ResponseEntity<CollectionModel<EntityModel<OperationResponseDto>>> getOperationsForAtomicDataType(
             @SpanAttribute("atomicDataType.id")
             @Parameter(description = "PID or internal ID of the AtomicDataType", required = true)
             @PathVariable String id);
@@ -197,10 +199,10 @@ public interface IAtomicDataTypeApi {
             }
     )
     @WithSpan
-    ResponseEntity<EntityModel<AtomicDataType>> patchAtomicDataType(
+    ResponseEntity<EntityModel<AtomicDataTypeDto>> patchAtomicDataType(
             @SpanAttribute
             @Parameter(description = "PID or internal ID of the AtomicDataType", required = true)
             @PathVariable String id,
             @Parameter(description = "Partial AtomicDataType with fields to update", required = true)
-            @RequestBody AtomicDataType atomicDataTypePatch);
+            @RequestBody AtomicDataTypeDto atomicDataTypePatch);
 }

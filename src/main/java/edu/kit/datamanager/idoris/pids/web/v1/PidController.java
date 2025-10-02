@@ -15,10 +15,8 @@
  */
 package edu.kit.datamanager.idoris.pids.web.v1;
 
-import edu.kit.datamanager.idoris.pids.entities.PersistentIdentifier;
+import edu.kit.datamanager.idoris.pids.domain.PIDNode;
 import edu.kit.datamanager.idoris.pids.services.PersistentIdentifierService;
-import edu.kit.datamanager.idoris.pids.web.api.IPidApi;
-import edu.kit.datamanager.idoris.pids.web.hateoas.PersistentIdentifierModelAssembler;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
@@ -28,22 +26,17 @@ import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 /**
  * Controller for PID-related operations.
@@ -53,25 +46,22 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
  * - /pid/tombstone/{pidValue} - Handles tombstone pages for deleted entities
  */
 @RestController
-@RequestMapping("/v1/pid")
+@RequestMapping("/pid")
 @Slf4j
 @Observed(contextualName = "pidController")
 @Tag(name = "Persistent Identifier", description = "API for accessing Persistent Identifiers (PIDs)")
-public class PidController implements IPidApi {
+public class PidController {
 
     private final PersistentIdentifierService pidService;
-    private final PersistentIdentifierModelAssembler pidModelAssembler;
 
     /**
      * Creates a new PidController with the given dependencies.
      *
-     * @param pidService        The PersistentIdentifierService
-     * @param pidModelAssembler The PersistentIdentifierModelAssembler
+     * @param pidService The PersistentIdentifierService
      */
     @Autowired
-    public PidController(PersistentIdentifierService pidService, PersistentIdentifierModelAssembler pidModelAssembler) {
+    public PidController(PersistentIdentifierService pidService) {
         this.pidService = pidService;
-        this.pidModelAssembler = pidModelAssembler;
     }
 
     /**
@@ -79,24 +69,15 @@ public class PidController implements IPidApi {
      *
      * @return A collection of all PersistentIdentifiers
      */
-    @Override
     @GetMapping
     @WithSpan(kind = SpanKind.SERVER)
     @Timed(value = "pidController.getAllPersistentIdentifiers", description = "Time taken to get all persistent identifiers", histogram = true)
     @Counted(value = "pidController.getAllPersistentIdentifiers.count", description = "Number of get all persistent identifiers requests")
-    public ResponseEntity<CollectionModel<EntityModel<PersistentIdentifier>>> getAllPersistentIdentifiers() {
+    public ResponseEntity<List<PIDNode>> getAllPersistentIdentifiers() {
         log.debug("Getting all PersistentIdentifiers");
-        List<EntityModel<PersistentIdentifier>> pids = pidService.getAllPersistentIdentifiers().stream()
-                .map(pidModelAssembler::toModel)
-                .collect(Collectors.toList());
-
-        CollectionModel<EntityModel<PersistentIdentifier>> collectionModel = CollectionModel.of(
-                pids,
-                linkTo(methodOn(PidController.class).getAllPersistentIdentifiers()).withSelfRel()
-        );
-
+        List<PIDNode> pids = pidService.getAllPersistentIdentifiers();
         log.info("Retrieved {} persistent identifiers", pids.size());
-        return ResponseEntity.ok(collectionModel);
+        return ResponseEntity.ok(pids);
     }
 
     /**
@@ -107,7 +88,6 @@ public class PidController implements IPidApi {
      * @param pidValue The PID value to redirect to
      * @return A ResponseEntity with a redirect status or not found if no entity is found
      */
-    @Override
     @GetMapping("/{pidValue}")
     @WithSpan(kind = SpanKind.SERVER)
     @Timed(value = "pidController.redirectToEntity", description = "Time taken to redirect to entity", histogram = true)
@@ -115,14 +95,14 @@ public class PidController implements IPidApi {
     public ResponseEntity<Void> redirectToEntity(@SpanAttribute("pid.value") @PathVariable("pidValue") String pidValue) {
         log.debug("Redirecting PID: {}", pidValue);
 
-        // Get the PersistentIdentifier for the given PID
-        Optional<PersistentIdentifier> optionalPid = pidService.getPersistentIdentifier(pidValue);
+        // Get the PIDNode for the given PID
+        Optional<PIDNode> optionalPid = pidService.getPersistentIdentifier(pidValue);
         if (optionalPid.isEmpty()) {
-            log.warn("No PersistentIdentifier found for PID: {}", pidValue);
+            log.warn("No PIDNode found for PID: {}", pidValue);
             return ResponseEntity.notFound().build();
         }
 
-        PersistentIdentifier pid = optionalPid.get();
+        PIDNode pid = optionalPid.get();
 
         // If the PID is a tombstone, redirect to the tombstone page
         if (pid.isTombstone()) {
@@ -154,7 +134,6 @@ public class PidController implements IPidApi {
      * @param pidValue The PID value of the tombstone
      * @return A ResponseEntity with a 410 Gone status and information about the deleted entity
      */
-    @Override
     @GetMapping("/tombstone/{pidValue}")
     @WithSpan(kind = SpanKind.SERVER)
     @Timed(value = "pidController.handleTombstone", description = "Time taken to handle tombstone request", histogram = true)
@@ -162,14 +141,8 @@ public class PidController implements IPidApi {
     public ResponseEntity<String> handleTombstone(@SpanAttribute("pid.value") @PathVariable("pidValue") String pidValue) {
         log.debug("Handling tombstone request for PID: {}", pidValue);
 
-        // Get the PersistentIdentifier for the given PID
-        Optional<PersistentIdentifier> optionalPid = pidService.getPersistentIdentifier(pidValue);
-        if (optionalPid.isEmpty()) {
-            log.warn("No PersistentIdentifier found for PID: {}", pidValue);
-            return ResponseEntity.notFound().build();
-        }
-
-        PersistentIdentifier pid = optionalPid.get();
+        // Get the PIDNode for the given PID
+        PIDNode pid = pidService.getPersistentIdentifier(pidValue).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "PID not found: " + pidValue));
 
         // If the PID is not a tombstone, redirect to the entity's page
         if (!pid.isTombstone()) {
@@ -181,7 +154,7 @@ public class PidController implements IPidApi {
 
         // Return a 410 Gone status with information about the deleted entity
         String message = String.format("The entity with PID %s has been deleted at %s. Entity type: %s",
-                pidValue, pid.getDeletedAt(), pid.getEntityType());
+                pid.getPid(), pid.getDeletedAt(), pid.getEntityType());
         log.debug("Returning tombstone message: {}", message);
         log.info("Served tombstone for PID: {}", pidValue);
         return ResponseEntity.status(HttpStatus.GONE)

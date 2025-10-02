@@ -16,10 +16,8 @@
 
 package edu.kit.datamanager.idoris.users.services;
 
+import edu.kit.datamanager.idoris.core.domain.User;
 import edu.kit.datamanager.idoris.users.dao.IUserDao;
-import edu.kit.datamanager.idoris.users.entities.ORCiDUser;
-import edu.kit.datamanager.idoris.users.entities.TextUser;
-import edu.kit.datamanager.idoris.users.entities.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,15 +40,13 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
 
+    private final String userId = "test-id";
     @Mock
     private IUserDao userDao;
-
     @InjectMocks
-    private UserServiceImpl userService;
-
+    private IUserServiceImpl userService;
     private TextUser textUser;
     private ORCiDUser orcidUser;
-    private final String userId = "test-id";
 
     @BeforeEach
     void setUp() throws MalformedURLException {

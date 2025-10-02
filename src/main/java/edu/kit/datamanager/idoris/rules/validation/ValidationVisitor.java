@@ -19,7 +19,7 @@ package edu.kit.datamanager.idoris.rules.validation;
 /**
  * A specialized visitor for validating domain entities against defined rules.
  *
- * <p>This visitor traverses the domain model and delegates validation to the rule service.
+ * <p>This visitor traverses the domain model and delegates validation to the rule logic.
  * For each visited element, it executes all applicable validation rules and accumulates
  * the results into a hierarchical validation report.</p>
  *
@@ -30,8 +30,8 @@ package edu.kit.datamanager.idoris.rules.validation;
  * need validation capabilities.</p>
  */
 
-import edu.kit.datamanager.idoris.core.domain.VisitableElement;
 import edu.kit.datamanager.idoris.rules.logic.IRule;
+import edu.kit.datamanager.idoris.rules.logic.VisitableElement;
 import edu.kit.datamanager.idoris.rules.logic.Visitor;
 import io.micrometer.observation.annotation.Observed;
 import io.opentelemetry.api.trace.SpanKind;

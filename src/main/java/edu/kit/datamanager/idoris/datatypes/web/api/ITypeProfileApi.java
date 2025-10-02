@@ -16,10 +16,9 @@
 
 package edu.kit.datamanager.idoris.datatypes.web.api;
 
-import edu.kit.datamanager.idoris.attributes.entities.Attribute;
-import edu.kit.datamanager.idoris.datatypes.entities.TypeProfile;
-import edu.kit.datamanager.idoris.datatypes.web.v1.TypeProfileController.TypeProfileInheritance;
-import edu.kit.datamanager.idoris.operations.entities.Operation;
+import edu.kit.datamanager.idoris.core.domain.Operation;
+import edu.kit.datamanager.idoris.datatypes.dto.TypeProfileDto;
+import edu.kit.datamanager.idoris.datatypes.dto.TypeProfileInheritance;
 import io.micrometer.observation.annotation.Observed;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -35,7 +34,7 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * API interface for TypeProfile endpoints.
- * This interface defines the REST API for managing TypeProfile entities.
+ * This interface defines the REST API for managing TypeProfile entities using DTOs.
  */
 @Tag(name = "TypeProfile", description = "API for managing TypeProfiles")
 @Observed
@@ -53,10 +52,10 @@ public interface ITypeProfileApi {
             responses = {
                     @ApiResponse(responseCode = "200", description = "TypeProfiles found",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = TypeProfile.class)))
+                                    schema = @Schema(implementation = TypeProfileDto.class)))
             }
     )
-    ResponseEntity<CollectionModel<EntityModel<TypeProfile>>> getAllTypeProfiles();
+    ResponseEntity<CollectionModel<EntityModel<TypeProfileDto>>> getAllTypeProfiles();
 
     /**
      * Gets a TypeProfile entity by its PID or internal ID.
@@ -71,11 +70,11 @@ public interface ITypeProfileApi {
             responses = {
                     @ApiResponse(responseCode = "200", description = "TypeProfile found",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = TypeProfile.class))),
+                                    schema = @Schema(implementation = TypeProfileDto.class))),
                     @ApiResponse(responseCode = "404", description = "TypeProfile not found")
             }
     )
-    ResponseEntity<EntityModel<TypeProfile>> getTypeProfile(
+    ResponseEntity<EntityModel<TypeProfileDto>> getTypeProfile(
             @Parameter(description = "PID or internal ID of the TypeProfile", required = true)
             @PathVariable String id);
 
@@ -124,20 +123,18 @@ public interface ITypeProfileApi {
      * Gets inherited attributes for a TypeProfile.
      *
      * @param id the PID or internal ID of the TypeProfile
-     * @return a collection of inherited attributes
+     * @return a collection of inherited attribute IDs
      */
     @GetMapping("/{id}/inheritedAttributes")
     @io.swagger.v3.oas.annotations.Operation(
             summary = "Get inherited attributes of a TypeProfile",
-            description = "Returns a collection of attributes inherited by a TypeProfile",
+            description = "Returns a collection of attribute IDs inherited by a TypeProfile",
             responses = {
-                    @ApiResponse(responseCode = "200", description = "Inherited attributes found",
-                            content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = Attribute.class))),
+                    @ApiResponse(responseCode = "200", description = "Inherited attributes found"),
                     @ApiResponse(responseCode = "404", description = "TypeProfile not found")
             }
     )
-    ResponseEntity<CollectionModel<EntityModel<Attribute>>> getInheritedAttributes(
+    ResponseEntity<CollectionModel<String>> getInheritedAttributes(
             @Parameter(description = "PID or internal ID of the TypeProfile", required = true)
             @PathVariable String id);
 
@@ -155,13 +152,13 @@ public interface ITypeProfileApi {
             responses = {
                     @ApiResponse(responseCode = "201", description = "TypeProfile created",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = TypeProfile.class))),
+                                    schema = @Schema(implementation = TypeProfileDto.class))),
                     @ApiResponse(responseCode = "400", description = "Invalid input or validation failed")
             }
     )
-    ResponseEntity<EntityModel<TypeProfile>> createTypeProfile(
+    ResponseEntity<EntityModel<TypeProfileDto>> createTypeProfile(
             @Parameter(description = "TypeProfile to create", required = true)
-            @Valid @RequestBody TypeProfile typeProfile);
+            @Valid @RequestBody TypeProfileDto typeProfile);
 
     /**
      * Updates an existing TypeProfile entity.
@@ -178,16 +175,16 @@ public interface ITypeProfileApi {
             responses = {
                     @ApiResponse(responseCode = "200", description = "TypeProfile updated",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = TypeProfile.class))),
+                                    schema = @Schema(implementation = TypeProfileDto.class))),
                     @ApiResponse(responseCode = "400", description = "Invalid input or validation failed"),
                     @ApiResponse(responseCode = "404", description = "TypeProfile not found")
             }
     )
-    ResponseEntity<EntityModel<TypeProfile>> updateTypeProfile(
+    ResponseEntity<EntityModel<TypeProfileDto>> updateTypeProfile(
             @Parameter(description = "PID or internal ID of the TypeProfile", required = true)
             @PathVariable String id,
             @Parameter(description = "Updated TypeProfile", required = true)
-            @Valid @RequestBody TypeProfile typeProfile);
+            @Valid @RequestBody TypeProfileDto typeProfile);
 
     /**
      * Deletes a TypeProfile entity.
@@ -242,14 +239,14 @@ public interface ITypeProfileApi {
             responses = {
                     @ApiResponse(responseCode = "200", description = "TypeProfile patched",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = TypeProfile.class))),
+                                    schema = @Schema(implementation = TypeProfileDto.class))),
                     @ApiResponse(responseCode = "400", description = "Invalid input"),
                     @ApiResponse(responseCode = "404", description = "TypeProfile not found")
             }
     )
-    ResponseEntity<EntityModel<TypeProfile>> patchTypeProfile(
+    ResponseEntity<EntityModel<TypeProfileDto>> patchTypeProfile(
             @Parameter(description = "PID or internal ID of the TypeProfile", required = true)
             @PathVariable String id,
             @Parameter(description = "Partial TypeProfile with fields to update", required = true)
-            @RequestBody TypeProfile typeProfilePatch);
+            @RequestBody TypeProfileDto typeProfilePatch);
 }

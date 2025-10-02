@@ -16,9 +16,9 @@
 
 package edu.kit.datamanager.idoris.operations.services;
 
+import edu.kit.datamanager.idoris.core.domain.Operation;
 import edu.kit.datamanager.idoris.core.events.EventPublisherService;
 import edu.kit.datamanager.idoris.operations.dao.IOperationDao;
-import edu.kit.datamanager.idoris.operations.entities.Operation;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
@@ -34,7 +34,7 @@ import java.util.Optional;
 
 /**
  * Service for managing Operation entities.
- * This service provides methods for creating, updating, and retrieving Operation entities.
+ * This logic provides methods for creating, updating, and retrieving Operation entities.
  * It publishes domain events when entities are created, updated, or deleted.
  */
 @Service
@@ -48,7 +48,7 @@ public class OperationService {
      * Creates a new OperationService with the given dependencies.
      *
      * @param operationDao   the Operation repository
-     * @param eventPublisher the event publisher service
+     * @param eventPublisher the event publisher logic
      */
     public OperationService(IOperationDao operationDao, EventPublisherService eventPublisher) {
         this.operationDao = operationDao;

@@ -16,8 +16,8 @@
 
 package edu.kit.datamanager.idoris.technologyinterfaces.web.api;
 
-import edu.kit.datamanager.idoris.attributes.entities.Attribute;
-import edu.kit.datamanager.idoris.technologyinterfaces.entities.TechnologyInterface;
+import edu.kit.datamanager.idoris.core.domain.Attribute;
+import edu.kit.datamanager.idoris.core.domain.TechnologyInterface;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

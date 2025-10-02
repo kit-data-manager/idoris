@@ -16,42 +16,12 @@
 
 package edu.kit.datamanager.idoris.operations.web.hateoas;
 
-import edu.kit.datamanager.idoris.core.domain.web.hateoas.EntityModelAssembler;
-import edu.kit.datamanager.idoris.operations.entities.Operation;
-import edu.kit.datamanager.idoris.operations.web.v1.OperationController;
-import org.springframework.hateoas.EntityModel;
-import org.springframework.stereotype.Component;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
-
 /**
- * Assembler for converting Operation entities to EntityModel objects with HATEOAS links.
+ * Placeholder kept for binary/source compatibility.
+ * The Operation API is DTO-first and uses OperationDtoModelAssembler.
+ * This class is intentionally not a Spring component and does not
+ * implement any assembler interface.
  */
-@Component
-public class OperationModelAssembler implements EntityModelAssembler<Operation> {
-
-    /**
-     * Converts an Operation entity to an EntityModel with HATEOAS links.
-     *
-     * @param operation the Operation entity to convert
-     * @return an EntityModel containing the Operation and links
-     */
-    @Override
-    public EntityModel<Operation> toModel(Operation operation) {
-        EntityModel<Operation> entityModel = toModelWithoutLinks(operation);
-
-        // Add self link
-        entityModel.add(linkTo(methodOn(OperationController.class).getOperation(operation.getId())).withSelfRel());
-
-        // Add link to all operations
-        entityModel.add(linkTo(methodOn(OperationController.class).getAllOperations()).withRel("operations"));
-
-        // Add link to executable on data type
-        if (operation.getExecutableOn() != null && operation.getExecutableOn().getDataType() != null) {
-            entityModel.add(linkTo(methodOn(OperationController.class).getOperation(operation.getExecutableOn().getDataType().getId())).withRel("executableOn"));
-        }
-
-        return entityModel;
-    }
+final class OperationModelAssembler {
+    // intentionally empty
 }

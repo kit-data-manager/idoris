@@ -13,80 +13,74 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package edu.kit.datamanager.idoris.datatypes.web.hateoas;
 
-import edu.kit.datamanager.idoris.core.domain.web.hateoas.EntityModelAssembler;
-import edu.kit.datamanager.idoris.datatypes.entities.TypeProfile;
+import edu.kit.datamanager.idoris.datatypes.dto.TypeProfileDto;
 import edu.kit.datamanager.idoris.datatypes.web.v1.TypeProfileController;
+import edu.kit.datamanager.idoris.pids.api.IInternalPIDService;
+import io.micrometer.observation.annotation.Observed;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
-import org.springframework.hateoas.server.RepresentationModelProcessor;
-import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
+import org.springframework.hateoas.Link;
+import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.stereotype.Component;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 /**
- * Assembler for converting TypeProfile entities to EntityModel objects with HATEOAS links.
- * <p>
- * This class combines the functionality of both an EntityModelAssembler and a
- * RepresentationModelProcessor, handling all HATEOAS concerns for TypeProfile entities
- * in one place, according to Domain-Driven Design principles.
+ * Assembler that adds HATEOAS links to TypeProfileDto responses.
  */
 @Component
-public class TypeProfileModelAssembler implements
-        EntityModelAssembler<TypeProfile>,
-        RepresentationModelProcessor<EntityModel<TypeProfile>> {
+@Observed(contextualName = "typeProfileDtoModelAssembler")
+public class TypeProfileModelAssembler implements RepresentationModelAssembler<TypeProfileDto, EntityModel<TypeProfileDto>> {
 
-    /**
-     * Converts a TypeProfile entity to an EntityModel with basic HATEOAS links.
-     *
-     * @param typeProfile the TypeProfile entity to convert
-     * @return an EntityModel containing the TypeProfile and links
-     */
+    @Autowired
+    private IInternalPIDService pidService;
+
     @Override
-    public EntityModel<TypeProfile> toModel(TypeProfile typeProfile) {
-        EntityModel<TypeProfile> entityModel = toModelWithoutLinks(typeProfile);
+    public EntityModel<TypeProfileDto> toModel(TypeProfileDto dto) {
+        EntityModel<TypeProfileDto> model = EntityModel.of(dto);
 
-        // Add self link
-        entityModel.add(linkTo(methodOn(TypeProfileController.class).getTypeProfile(typeProfile.getId())).withSelfRel());
+        // Collection link
+        model.add(linkTo(methodOn(TypeProfileController.class).list()).withRel("collection"));
 
-        // Add link to all type profiles
-        entityModel.add(linkTo(methodOn(TypeProfileController.class).getAllTypeProfiles()).withRel("typeProfiles"));
-
-        return entityModel;
-    }
-
-    /**
-     * Processes an EntityModel of TypeProfile to add additional HATEOAS links.
-     * This method is called after toModel() and enhances the model with more context-specific links.
-     *
-     * @param model the EntityModel to process
-     * @return the processed EntityModel with additional links
-     */
-    @Override
-    public EntityModel<TypeProfile> process(EntityModel<TypeProfile> model) {
-        TypeProfile typeProfile = model.getContent();
-        if (typeProfile == null) {
-            return model;
+        // Add PID link if resolvable
+        if (dto.getInternalId() != null && pidService != null) {
+            pidService.getPIDLinkForInternalID(dto.getInternalId()).forEach(model::add);
         }
 
-        String pid = typeProfile.getId();
+        // Self and relation links
+        String base = "/v1/typeProfiles/{id}";
+        if (dto.getInternalId() != null) {
+            model.add(linkTo(methodOn(TypeProfileController.class).get(dto.getInternalId())).withSelfRel());
+        } else {
+            model.add(Link.of(base).withSelfRel().withTitle("self (templated)"));
+        }
+        model.add(Link.of(base + "/inheritsFrom:link").withRel("inheritsFrom:link"));
+        model.add(Link.of(base + "/inheritsFrom:unlink").withRel("inheritsFrom:unlink"));
+        model.add(Link.of(base + "/attributes:link").withRel("attributes:link"));
+        model.add(Link.of(base + "/attributes:unlink").withRel("attributes:unlink"));
 
-        // Add link to validate
-        model.add(linkTo(methodOn(TypeProfileController.class).validate(pid)).withRel("validate"));
+        // Add link to inherited attributes using the DTO's ID
+        if (dto.getInternalId() != null) {
+            model.add(linkTo(methodOn(TypeProfileController.class).getInheritedAttributes(dto.getInternalId())).withRel("inheritedAttributes"));
 
-        // Add link to inherited attributes
-        model.add(linkTo(methodOn(TypeProfileController.class).getInheritedAttributes(pid)).withRel("inheritedAttributes"));
+            // Add link to inheritance tree
+            model.add(linkTo(methodOn(TypeProfileController.class).getInheritanceTree(dto.getInternalId())).withRel("inheritanceTree"));
 
-        // Add link to inheritance tree
-        model.add(linkTo(methodOn(TypeProfileController.class).getInheritanceTree(pid)).withRel("inheritanceTree"));
-
-        // Add link to operations
-        WebMvcLinkBuilder operationsLinkBuilder = linkTo(methodOn(TypeProfileController.class).getOperationsForTypeProfile(pid));
-        model.add(operationsLinkBuilder.withRel("operations"));
+            // Add link to operations
+            model.add(linkTo(methodOn(TypeProfileController.class).getOperationsForTypeProfile(dto.getInternalId())).withRel("operations"));
+        }
 
         return model;
+    }
+
+    @Override
+    public CollectionModel<EntityModel<TypeProfileDto>> toCollectionModel(Iterable<? extends TypeProfileDto> entities) {
+        CollectionModel<EntityModel<TypeProfileDto>> collection = RepresentationModelAssembler.super.toCollectionModel(entities);
+        collection.add(linkTo(methodOn(TypeProfileController.class).list()).withSelfRel());
+        return collection;
     }
 }

@@ -23,14 +23,14 @@ import org.springframework.data.neo4j.repository.query.Query;
 import org.springframework.data.repository.ListCrudRepository;
 import org.springframework.data.repository.PagingAndSortingRepository;
 
-import java.net.URI;
+import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 
 public interface IUserDao extends Neo4jRepository<User, String>, ListCrudRepository<User, String>, PagingAndSortingRepository<User, String> {
     List<User> findAll();
 
-    Optional<User> findByOrcid(URI orcid);
+    Optional<User> findByOrcid(URL orcid);
 
     Optional<User> findByEmail(String email);
 

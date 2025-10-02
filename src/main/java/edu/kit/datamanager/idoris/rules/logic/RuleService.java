@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,7 +39,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 @Observed(contextualName = "ruleService")
-public class RuleService {
+public class RuleService implements IRuleService {
 
     /**
      * Provides access to all Spring-managed beans for rule discovery.
@@ -259,6 +260,18 @@ public class RuleService {
         return executeRulesSequentially(ruleClassNames, element, resultFactory);
     }
 
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Override
+    public <T extends VisitableElement, R extends RuleOutput<R>> R executeSpecificRule(String ruleName, T element, Supplier<R> resultFactory) throws RuntimeException {
+        return executeRulesSequentially(List.of(ruleName), element, resultFactory);
+    }
+
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Override
+    public <T extends VisitableElement, R extends RuleOutput<R>> R executeSpecificRule(IRule<T, R> rule, T element, Supplier<R> resultFactory) throws RuntimeException {
+        return executeRule(rule, element, resultFactory);
+    }
+
     /**
      * Executes rules sequentially in their precomputed ordering.
      * <p>
@@ -353,20 +366,29 @@ public class RuleService {
             @SpanAttribute("rule.class") IRule<?, ?> rule,
             @SpanAttribute("element.class") T element,
             Supplier<R> resultFactory
-    ) {
-        String ruleName = rule.getClass().getSimpleName();
-        log.debug("Executing rule: {}", ruleName);
+    ) throws IllegalArgumentException {
+        Rule annotation = rule.getClass().getAnnotation(Rule.class);
 
-        R result = resultFactory.get();
+        if (annotation == null) throw new IllegalArgumentException("Provided rule is not annotated with @Rule");
 
-        // Perform a type-safe cast to the specific generic parameter types needed for this rule execution
-        // This cast is guaranteed to be safe because the precomputed graph ensures type compatibility
-        IRule<T, R> typedRule = (IRule<T, R>) rule;
+        log.debug("Executing rule {} for element of type {}", annotation.name(), element.getClass().getName());
 
-        // Execute the rule's processing logic with the input element and result container
-        typedRule.process(element, result);
-        log.debug("Rule {} execution completed successfully", ruleName);
-        return result;
+        // Check if the rule applies to the element type
+        if (Arrays.stream(annotation.appliesTo())
+                .anyMatch(appliesTo -> appliesTo.equals(element.getClass()))) {
+            R result = resultFactory.get();
+
+            // Perform a type-safe cast to the specific generic parameter types needed for this rule execution
+            // This cast is guaranteed to be safe because the precomputed graph ensures type compatibility
+            IRule<T, R> typedRule = (IRule<T, R>) rule;
+
+            // Execute the rule's processing logic with the input element and result container
+            typedRule.process(element, result);
+            log.debug("Rule {} execution completed successfully", annotation.name());
+            return result;
+        }
+        // Rule does not apply to the element type, throw an exception
+        throw new IllegalArgumentException("Provided rule " + annotation.name() + " does not apply to element of type " + element.getClass().getName());
     }
 
 }

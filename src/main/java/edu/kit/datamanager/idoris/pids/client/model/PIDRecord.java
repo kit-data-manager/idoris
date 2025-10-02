@@ -17,6 +17,7 @@
 package edu.kit.datamanager.idoris.pids.client.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import edu.kit.datamanager.idoris.core.domain.valueObjects.PID;
 import lombok.With;
 
 import java.util.ArrayList;
@@ -24,12 +25,12 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Represents a Simple PID Record in the Typed PID Maker service.
+ * Represents a Simple PID Record in the Typed PID Maker logic.
  * This follows the SimplePidRecord structure from the Typed PID Maker API.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @With
-public record PIDRecord(String pid, List<PIDRecordEntry> record) {
+public record PIDRecord(PID pid, List<PIDRecordEntry> record) {
 
     /**
      * Constructs a PIDRecord with the given PID and an empty record.
@@ -37,18 +38,8 @@ public record PIDRecord(String pid, List<PIDRecordEntry> record) {
      *
      * @param pid The PID of the record
      */
-    public PIDRecord(String pid) {
+    public PIDRecord(PID pid) {
         this(pid, new ArrayList<>());
-    }
-
-    /**
-     * Constructs a PIDRecord with an empty PID and the given record entries.
-     * If the record is null, it initializes an empty list.
-     *
-     * @param record The list of PIDRecordEntry entries
-     */
-    public PIDRecord(List<PIDRecordEntry> record) {
-        this("", Objects.requireNonNullElseGet(record, ArrayList::new));
     }
 
     /**
@@ -59,8 +50,18 @@ public record PIDRecord(String pid, List<PIDRecordEntry> record) {
      * @param pid    The PID of the record
      * @param record The list of PIDRecordEntry entries
      */
-    public PIDRecord(String pid, List<PIDRecordEntry> record) {
-        this.pid = Objects.requireNonNullElse(pid, "");
+    public PIDRecord(PID pid, List<PIDRecordEntry> record) {
+        this.pid = pid;
         this.record = Objects.requireNonNullElseGet(record, ArrayList::new);
+    }
+
+    /**
+     * Constructs a PIDRecord with an empty PID and the given record entries.
+     * If the record is null, it initializes an empty list.
+     *
+     * @param record The list of PIDRecordEntry entries
+     */
+    public PIDRecord(List<PIDRecordEntry> record) {
+        this(null, Objects.requireNonNullElseGet(record, ArrayList::new));
     }
 }

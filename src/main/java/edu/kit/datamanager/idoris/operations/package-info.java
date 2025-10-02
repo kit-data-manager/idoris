@@ -19,10 +19,10 @@
  * This module contains entity definitions, domain services, and business logic related to operations.
  * It is responsible for managing operations and operation steps.
  *
- * <p>The Operations module depends on the core module for base abstractions and interfaces.</p>
+ * <p>The Operations module depends on the core module.</p>
  */
 @org.springframework.modulith.ApplicationModule(
         displayName = "IDORIS Operations",
-        allowedDependencies = {"core"}
+        allowedDependencies = {"core", "pids :: api"}
 )
 package edu.kit.datamanager.idoris.operations;

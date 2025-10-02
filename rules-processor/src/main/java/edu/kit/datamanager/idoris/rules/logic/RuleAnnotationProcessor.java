@@ -21,7 +21,9 @@ import com.google.auto.service.AutoService;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
+import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
@@ -291,6 +293,12 @@ public final class RuleAnnotationProcessor extends AbstractProcessor {
                             "Add 'implements IRule<YourTargetType, YourOutputType>' to the class declaration.",
                     ruleClass.getQualifiedName());
         }
+
+        if (!implementsVisitorMethods(ruleClass)) {
+            reportError(ruleClass,
+                    "Rule class %s must define visitor methods for all classes specified in the @Rule annotation. ",
+                    ruleClass.getQualifiedName());
+        }
     }
 
     /**
@@ -325,6 +333,279 @@ public final class RuleAnnotationProcessor extends AbstractProcessor {
                 candidateType.asType(),
                 typeUtilities.erasure(iRuleInterface.asType())
         );
+    }
+
+
+    /**
+     * Validates that a rule class implements the required visitor methods for all target types.
+     *
+     * <p>This method performs comprehensive validation to ensure that rule classes implement
+     * the visitor pattern correctly by providing appropriate {@code visit} methods for each
+     * target type specified in the {@code @Rule} annotation's {@code appliesTo} attribute.
+     *
+     * <h3>Validation Requirements</h3>
+     * <p>For each target type specified in {@code appliesTo}, the rule class must define
+     * a visitor method that meets the following criteria:
+     * <ul>
+     *   <li><strong>Method Name:</strong> Must be exactly "visit"</li>
+     *   <li><strong>Parameter Count:</strong> Must have exactly 2 parameters</li>
+     *   <li><strong>First Parameter:</strong> Must be assignable from the target type
+     *       (supports inheritance and polymorphism)</li>
+     *   <li><strong>Second Parameter:</strong> Must be varargs {@code Object[]}</li>
+     * </ul>
+     *
+     * <h3>Method Signature Examples</h3>
+     * <p>For a rule that applies to {@code MyEntity.class}, valid visitor methods include:
+     * <pre>
+     * public SomeReturnType visit(MyEntity element, Object... args) { ... }
+     * public SomeReturnType visit(MyEntity element, Object... context) { ... }
+     * public void visit(MyEntity element, Object... data) { ... }
+     * </pre>
+     *
+     * <h3>Inheritance Support</h3>
+     * <p>This validation includes inherited methods from superclasses and implemented
+     * interfaces, using {@link Elements#getAllMembers(TypeElement)} to ensure that
+     * visitor methods defined in parent classes are properly recognized.
+     *
+     * <h3>Type Safety</h3>
+     * <p>The method uses annotation mirrors to safely extract target types without
+     * triggering {@code MirroredTypesException}, and performs semantic method signature
+     * validation using the type utilities rather than fragile string comparison.
+     *
+     * @param candidateType the rule class to validate for visitor method implementation
+     * @return {@code true} if the rule class implements all required visitor methods,
+     * {@code false} otherwise (compilation errors are reported for missing methods)
+     */
+    private boolean implementsVisitorMethods(TypeElement candidateType) {
+        Rule annotation = candidateType.getAnnotation(Rule.class);
+        if (annotation == null) {
+            return false; // Should not happen, as we are processing @Rule annotated elements
+        }
+
+        // Get target types from annotation using annotation mirrors to avoid MirroredTypesException
+        List<TypeMirror> targetTypes = getTargetTypesFromAnnotation(candidateType);
+
+        // Get all methods (including inherited ones) that are named "visit"
+        List<ExecutableElement> visitMethods = elementUtilities.getAllMembers(candidateType).stream()
+                .filter(element -> element.getKind() == ElementKind.METHOD)
+                .map(ExecutableElement.class::cast)
+                .filter(method -> "visit".equals(method.getSimpleName().toString()))
+                .toList();
+
+        // Check if we have a matching visit method for each target type
+        for (TypeMirror targetType : targetTypes) {
+            boolean hasMatchingMethod = visitMethods.stream().anyMatch(method ->
+                    isValidVisitMethod(method, targetType));
+
+            if (!hasMatchingMethod) {
+                String targetTypeName = getSimpleTypeName(targetType);
+                reportError(candidateType,
+                        "Rule class %s must define a visit method for target type %s. " +
+                                "Add `public T visit(%s element, Object... args)` method to your class.",
+                        candidateType.getQualifiedName(), targetTypeName, targetTypeName);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Safely extracts target types from the {@code @Rule} annotation using annotation mirrors.
+     *
+     * <p>This method provides safe access to the {@code appliesTo} attribute of the
+     * {@code @Rule} annotation without triggering {@code MirroredTypesException}.
+     * The exception occurs when annotation processing attempts to access {@code Class}
+     * values directly, as the referenced classes might not be available in the current
+     * compilation context.
+     *
+     * <h3>Safe Annotation Access Pattern</h3>
+     * <p>Instead of directly accessing annotation attributes like:
+     * <pre>
+     * Rule annotation = candidateType.getAnnotation(Rule.class);
+     * Class&lt;?&gt;[] targetTypes = annotation.appliesTo(); // May throw MirroredTypesException
+     * </pre>
+     *
+     * <p>This method uses annotation mirrors to safely extract {@code TypeMirror}
+     * representations of the target types:
+     * <pre>
+     * AnnotationMirror mirror = findRuleAnnotation(candidateType);
+     * AnnotationValue appliesTo = extractAnnotationAttributes(mirror).get("appliesTo");
+     * List&lt;TypeMirror&gt; types = extractTypeMirrorsFromAnnotationValue(appliesTo);
+     * </pre>
+     *
+     * <h3>Error Handling</h3>
+     * <p>The method gracefully handles missing or malformed annotations by returning
+     * an empty list, allowing calling code to proceed with validation and report
+     * appropriate errors through the standard error reporting mechanisms.
+     *
+     * @param ruleClass the rule class to extract target types from
+     * @return list of {@code TypeMirror} objects representing the target types
+     * specified in the {@code appliesTo} attribute, or an empty list if
+     * the annotation or attribute is missing
+     */
+    private List<TypeMirror> getTargetTypesFromAnnotation(TypeElement ruleClass) {
+        AnnotationMirror ruleAnnotation = findRuleAnnotation(ruleClass);
+        if (ruleAnnotation == null) {
+            return List.of();
+        }
+
+        Map<String, AnnotationValue> attributes = extractAnnotationAttributes(ruleAnnotation);
+        AnnotationValue appliesToValue = attributes.get("appliesTo");
+
+        if (appliesToValue == null) {
+            return List.of();
+        }
+
+        @SuppressWarnings("unchecked")
+        List<AnnotationValue> typeValues = (List<AnnotationValue>) appliesToValue.getValue();
+
+        return typeValues.stream()
+                .map(av -> (TypeMirror) av.getValue())
+                .toList();
+    }
+
+    /**
+     * Validates whether a method conforms to the visitor pattern signature for a given target type.
+     *
+     * <p>This method performs comprehensive validation of a potential visitor method to ensure
+     * it can properly handle the specified target type within the rule execution framework.
+     * The validation is semantic rather than syntactic, using the type system to verify
+     * compatibility rather than fragile string matching.
+     *
+     * <h3>Validation Criteria</h3>
+     * <p>A method is considered a valid visitor method if it satisfies all of the following:
+     * <ol>
+     *   <li><strong>Method Name:</strong> Must be exactly "visit" (already filtered by caller)</li>
+     *   <li><strong>Parameter Count:</strong> Must have exactly 2 parameters</li>
+     *   <li><strong>First Parameter Type:</strong> Must be assignable from the target type,
+     *       enabling polymorphic dispatch and inheritance support</li>
+     *   <li><strong>Second Parameter Type:</strong> Must be varargs {@code Object[]} to allow
+     *       flexible context passing</li>
+     *   <li><strong>Varargs Support:</strong> The method must be declared with varargs syntax</li>
+     * </ol>
+     *
+     * <h3>Type Assignability</h3>
+     * <p>The first parameter validation uses {@link Types#isAssignable(TypeMirror, TypeMirror)}
+     * to ensure that instances of the target type can be passed to the method. This correctly
+     * handles:
+     * <ul>
+     *   <li>Exact type matches</li>
+     *   <li>Inheritance relationships (subclass to superclass)</li>
+     *   <li>Interface implementations</li>
+     *   <li>Generic type parameters and wildcards</li>
+     * </ul>
+     *
+     * <h3>Varargs Validation</h3>
+     * <p>The second parameter must be declared as {@code Object...} varargs to provide
+     * a flexible mechanism for passing execution context, configuration, or other data
+     * to the visitor method. The validation checks:
+     * <ul>
+     *   <li>The method is declared with varargs ({@link ExecutableElement#isVarArgs()})</li>
+     *   <li>The varargs parameter type is an array ({@code TypeKind.ARRAY})</li>
+     *   <li>The array component type is exactly {@code java.lang.Object}</li>
+     * </ul>
+     *
+     * <h3>Example Valid Signatures</h3>
+     * <pre>
+     * // For target type MyEntity:
+     * public ValidationResult visit(MyEntity entity, Object... context)
+     * public void visit(MyEntity element, Object... args)
+     * public &lt;T&gt; T visit(MyEntity node, Object... data)
+     *
+     * // With inheritance - if MySpecificEntity extends MyEntity:
+     * public Result visit(MyEntity base, Object... context) // Accepts MySpecificEntity instances
+     * </pre>
+     *
+     * @param method     the method to validate for visitor pattern compliance
+     * @param targetType the target type that this visitor method should be able to handle
+     * @return {@code true} if the method is a valid visitor method for the target type,
+     * {@code false} otherwise
+     */
+    private boolean isValidVisitMethod(ExecutableElement method, TypeMirror targetType) {
+        List<? extends VariableElement> parameters = method.getParameters();
+
+        // Must have exactly 2 parameters
+        if (parameters.size() != 2) {
+            return false;
+        }
+
+        // First parameter must be assignable from target type
+        VariableElement firstParam = parameters.get(0);
+        TypeMirror firstParamType = firstParam.asType();
+        if (!typeUtilities.isAssignable(targetType, firstParamType)) {
+            return false;
+        }
+
+        // Second parameter must be varargs Object[]
+        VariableElement secondParam = parameters.get(1);
+        if (!method.isVarArgs()) {
+            return false;
+        }
+
+        // Check that varargs parameter is Object[]
+        TypeMirror secondParamType = secondParam.asType();
+        if (secondParamType.getKind() != TypeKind.ARRAY) {
+            return false;
+        }
+
+        ArrayType arrayType = (ArrayType) secondParamType;
+        TypeMirror componentType = arrayType.getComponentType();
+
+        // Get java.lang.Object type for comparison
+        TypeElement objectElement = elementUtilities.getTypeElement("java.lang.Object");
+        if (objectElement == null) {
+            return false;
+        }
+
+        TypeMirror objectType = objectElement.asType();
+        return typeUtilities.isSameType(componentType, objectType);
+    }
+
+    /**
+     * Extracts a human-readable simple type name from a TypeMirror for error reporting.
+     *
+     * <p>This utility method converts {@code TypeMirror} objects to simple, readable
+     * type names suitable for inclusion in compilation error messages. It handles
+     * various type kinds appropriately to provide meaningful names without overwhelming
+     * users with fully qualified names or complex generic signatures.
+     *
+     * <h3>Type Handling</h3>
+     * <p>The method handles different {@code TypeMirror} kinds as follows:
+     * <ul>
+     *   <li><strong>Declared Types:</strong> Extracts the simple name of the type element
+     *       (e.g., "MyEntity" instead of "com.example.MyEntity")</li>
+     *   <li><strong>Nested Classes:</strong> Returns just the nested class name
+     *       (e.g., "InnerClass" instead of "OuterClass.InnerClass")</li>
+     *   <li><strong>Other Types:</strong> Falls back to the TypeMirror's string representation
+     *       for primitive types, arrays, type variables, etc.</li>
+     * </ul>
+     *
+     * <h3>Error Message Context</h3>
+     * <p>The simple names returned by this method are intended for use in user-facing
+     * error messages where brevity and clarity are more important than precision.
+     * For example:
+     * <pre>
+     * // Instead of: "Rule class must define visit method for com.example.domain.MyEntity"
+     * // Produces: "Rule class must define visit method for MyEntity"
+     * </pre>
+     *
+     * <h3>Fallback Behavior</h3>
+     * <p>If the type cannot be processed as a declared type (e.g., primitive types,
+     * type variables, wildcards), the method falls back to using the {@code toString()}
+     * representation of the {@code TypeMirror}, which provides reasonable names for
+     * most type kinds.
+     *
+     * @param typeMirror the type mirror to extract a simple name from
+     * @return a simple, human-readable type name suitable for error messages
+     */
+    private String getSimpleTypeName(TypeMirror typeMirror) {
+        if (typeMirror.getKind() == TypeKind.DECLARED) {
+            DeclaredType declaredType = (DeclaredType) typeMirror;
+            TypeElement typeElement = (TypeElement) declaredType.asElement();
+            return typeElement.getSimpleName().toString();
+        }
+        return typeMirror.toString();
     }
 
     /**

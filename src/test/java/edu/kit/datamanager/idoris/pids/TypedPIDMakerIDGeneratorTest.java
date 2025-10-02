@@ -16,9 +16,9 @@
 
 package edu.kit.datamanager.idoris.pids;
 
-import edu.kit.datamanager.idoris.configuration.ApplicationProperties;
-import edu.kit.datamanager.idoris.configuration.TypedPIDMakerConfig;
-import edu.kit.datamanager.idoris.core.domain.entities.AdministrativeMetadata;
+import edu.kit.datamanager.idoris.core.configuration.ApplicationProperties;
+import edu.kit.datamanager.idoris.core.configuration.TypedPIDMakerConfig;
+import edu.kit.datamanager.idoris.core.domain.AdministrativeMetadata;
 import edu.kit.datamanager.idoris.pids.client.TypedPIDMakerClient;
 import edu.kit.datamanager.idoris.pids.client.model.PIDRecord;
 import edu.kit.datamanager.idoris.rules.logic.RuleOutput;
@@ -29,6 +29,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 
 import java.time.Instant;
 import java.util.List;
@@ -65,7 +67,7 @@ class TypedPIDMakerIDGeneratorTest {
         when(config.isMeaningfulPIDRecords()).thenReturn(false);
 
         PIDRecord createdRecord = new PIDRecord("test-pid", List.of());
-        when(client.createPIDRecord(any())).thenReturn(createdRecord);
+        when(client.createPIDRecord(any())).thenReturn(ResponseEntity.ok(createdRecord));
 
         // Act
         String pid = generator.generateId("TestEntity", entity);
@@ -103,7 +105,7 @@ class TypedPIDMakerIDGeneratorTest {
         when(config.isMeaningfulPIDRecords()).thenReturn(true);
 
         PIDRecord createdRecord = new PIDRecord("test-pid", List.of());
-        when(client.createPIDRecord(any())).thenReturn(createdRecord);
+        when(client.createPIDRecord(any())).thenReturn(ResponseEntity.ok(createdRecord));
 
         // Act
         String pid = generator.generateId("TestEntity", entity);
@@ -165,7 +167,9 @@ class TypedPIDMakerIDGeneratorTest {
         when(config.isUpdatePIDRecords()).thenReturn(true);
 
         PIDRecord existingRecord = new PIDRecord("existing-pid", List.of());
-        when(client.getPIDRecord("existing-pid")).thenReturn(existingRecord);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setETag("\"etag-1\"");
+        when(client.getPIDRecord("existing-pid")).thenReturn(ResponseEntity.ok().headers(headers).body(existingRecord));
 
         // Act
         String pid = generator.generateId("TestEntity", entity);
@@ -174,7 +178,7 @@ class TypedPIDMakerIDGeneratorTest {
         assertEquals("existing-pid", pid);
 
         ArgumentCaptor<PIDRecord> recordCaptor = ArgumentCaptor.forClass(PIDRecord.class);
-        verify(client).updatePIDRecord(eq("existing-pid"), recordCaptor.capture());
+        verify(client).updatePIDRecord(eq("existing-pid"), recordCaptor.capture(), any());
 
         PIDRecord capturedRecord = recordCaptor.getValue();
 

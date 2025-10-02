@@ -16,14 +16,71 @@
 
 package edu.kit.datamanager.idoris.operations.dao;
 
-import edu.kit.datamanager.idoris.operations.entities.AttributeMapping;
+import edu.kit.datamanager.idoris.core.domain.valueObjects.AttributeMapping;
 import org.springframework.data.neo4j.repository.Neo4jRepository;
 import org.springframework.data.neo4j.repository.query.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * Repository interface for AttributeMapping entities.
  */
 public interface IAttributeMappingDao extends Neo4jRepository<AttributeMapping, String> {
+
+    /**
+     * Link input Attribute to an AttributeMapping by IDs (PID or internal ID for attribute).
+     */
+    @Query("""
+            MATCH (m:AttributeMapping {internalId: $mappingId})
+            MATCH (a:Attribute)
+            WHERE a.internalId = $attributeId OR EXISTS { MATCH (pid:PersistentIdentifier {pid: $attributeId})-[:IDENTIFIES]->(a) }
+            MERGE (a)-[:input]->(m)
+            """)
+    void linkInputAttribute(@Param("mappingId") String mappingId, @Param("attributeId") String attributeId);
+
+    /**
+     * Link output Attribute to an AttributeMapping by IDs (PID or internal ID for attribute).
+     */
+    @Query("""
+            MATCH (m:AttributeMapping {internalId: $mappingId})
+            MATCH (a:Attribute)
+            WHERE a.internalId = $attributeId OR EXISTS { MATCH (pid:PersistentIdentifier {pid: $attributeId})-[:IDENTIFIES]->(a) }
+            MERGE (m)-[:output]->(a)
+            """)
+    void linkOutputAttribute(@Param("mappingId") String mappingId, @Param("attributeId") String attributeId);
+
+    /**
+     * Finds AttributeMapping entities by input attribute ID (either PID or internal ID).
+     * This method tries to find mappings using both PID and internal ID.
+     *
+     * @param id the ID of the input attribute (either PID or internal ID)
+     * @return an Iterable of AttributeMapping entities
+     */
+    default Iterable<AttributeMapping> findByInputAttributeId(String id) {
+        // Try both PID and internal ID
+        Iterable<AttributeMapping> byPid = findByInputAttributePid(id);
+        Iterable<AttributeMapping> byInternalId = findByInputAttributeInternalId(id);
+
+        // Combine the results
+        return () -> {
+            java.util.Iterator<AttributeMapping> pidIterator = byPid.iterator();
+            java.util.Iterator<AttributeMapping> internalIdIterator = byInternalId.iterator();
+
+            return new java.util.Iterator<AttributeMapping>() {
+                @Override
+                public boolean hasNext() {
+                    return pidIterator.hasNext() || internalIdIterator.hasNext();
+                }
+
+                @Override
+                public AttributeMapping next() {
+                    if (pidIterator.hasNext()) {
+                        return pidIterator.next();
+                    }
+                    return internalIdIterator.next();
+                }
+            };
+        };
+    }
 
     /**
      * Finds AttributeMapping entities by input attribute PID.
@@ -44,16 +101,16 @@ public interface IAttributeMappingDao extends Neo4jRepository<AttributeMapping, 
     Iterable<AttributeMapping> findByInputAttributeInternalId(String internalId);
 
     /**
-     * Finds AttributeMapping entities by input attribute ID (either PID or internal ID).
+     * Finds AttributeMapping entities by output attribute ID (either PID or internal ID).
      * This method tries to find mappings using both PID and internal ID.
      *
-     * @param id the ID of the input attribute (either PID or internal ID)
+     * @param id the ID of the output attribute (either PID or internal ID)
      * @return an Iterable of AttributeMapping entities
      */
-    default Iterable<AttributeMapping> findByInputAttributeId(String id) {
+    default Iterable<AttributeMapping> findByOutputAttributeId(String id) {
         // Try both PID and internal ID
-        Iterable<AttributeMapping> byPid = findByInputAttributePid(id);
-        Iterable<AttributeMapping> byInternalId = findByInputAttributeInternalId(id);
+        Iterable<AttributeMapping> byPid = findByOutputAttributePid(id);
+        Iterable<AttributeMapping> byInternalId = findByOutputAttributeInternalId(id);
 
         // Combine the results
         return () -> {
@@ -94,38 +151,4 @@ public interface IAttributeMappingDao extends Neo4jRepository<AttributeMapping, 
      */
     @Query("MATCH (a:Attribute {internalId: $internalId})<-[:output]-(m:AttributeMapping) RETURN m")
     Iterable<AttributeMapping> findByOutputAttributeInternalId(String internalId);
-
-    /**
-     * Finds AttributeMapping entities by output attribute ID (either PID or internal ID).
-     * This method tries to find mappings using both PID and internal ID.
-     *
-     * @param id the ID of the output attribute (either PID or internal ID)
-     * @return an Iterable of AttributeMapping entities
-     */
-    default Iterable<AttributeMapping> findByOutputAttributeId(String id) {
-        // Try both PID and internal ID
-        Iterable<AttributeMapping> byPid = findByOutputAttributePid(id);
-        Iterable<AttributeMapping> byInternalId = findByOutputAttributeInternalId(id);
-
-        // Combine the results
-        return () -> {
-            java.util.Iterator<AttributeMapping> pidIterator = byPid.iterator();
-            java.util.Iterator<AttributeMapping> internalIdIterator = byInternalId.iterator();
-
-            return new java.util.Iterator<AttributeMapping>() {
-                @Override
-                public boolean hasNext() {
-                    return pidIterator.hasNext() || internalIdIterator.hasNext();
-                }
-
-                @Override
-                public AttributeMapping next() {
-                    if (pidIterator.hasNext()) {
-                        return pidIterator.next();
-                    }
-                    return internalIdIterator.next();
-                }
-            };
-        };
-    }
 }

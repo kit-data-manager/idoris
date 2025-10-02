@@ -16,14 +16,49 @@
 
 package edu.kit.datamanager.idoris.operations.dao;
 
-import edu.kit.datamanager.idoris.core.domain.dao.IGenericRepo;
-import edu.kit.datamanager.idoris.operations.entities.Operation;
+import edu.kit.datamanager.idoris.core.dao.IGenericRepo;
+import edu.kit.datamanager.idoris.core.domain.Operation;
 import org.springframework.data.neo4j.repository.query.Query;
 
 /**
  * Repository interface for Operation entities.
  */
 public interface IOperationDao extends IGenericRepo<Operation> {
+    /**
+     * Gets operations that can be executed on a data type.
+     * This method finds operations that are executable on the given data type or its attributes.
+     * This method tries to find operations using both PID and internal ID.
+     *
+     * @param id the ID of the data type (either PID or internal ID)
+     * @return an Iterable of Operation entities
+     */
+    default Iterable<Operation> getOperationsForDataType(String id) {
+        // Try both PID and internal ID
+        Iterable<Operation> byPid = getOperationsForDataTypeByPid(id);
+        Iterable<Operation> byInternalId = getOperationsForDataTypeByInternalId(id);
+
+        // Combine the results
+        return () -> {
+            java.util.Iterator<Operation> pidIterator = byPid.iterator();
+            java.util.Iterator<Operation> internalIdIterator = byInternalId.iterator();
+
+            return new java.util.Iterator<Operation>() {
+                @Override
+                public boolean hasNext() {
+                    return pidIterator.hasNext() || internalIdIterator.hasNext();
+                }
+
+                @Override
+                public Operation next() {
+                    if (pidIterator.hasNext()) {
+                        return pidIterator.next();
+                    }
+                    return internalIdIterator.next();
+                }
+            };
+        };
+    }
+
     /**
      * Gets operations that can be executed on a data type.
      * This method finds operations that are executable on the given data type or its attributes.
@@ -61,39 +96,4 @@ public interface IOperationDao extends IGenericRepo<Operation> {
             UNION
             MATCH (d:DataType {internalId: $internalId})-[:inheritsFrom*]->(:DataType)-[:attributes]->(:Attribute)-[:dataType]->(:DataType)-[:inheritsFrom*]->(:DataType)<-[:dataType]-(:Attribute)<-[:executableOn]-(o:Operation) RETURN o""")
     Iterable<Operation> getOperationsForDataTypeByInternalId(String internalId);
-
-    /**
-     * Gets operations that can be executed on a data type.
-     * This method finds operations that are executable on the given data type or its attributes.
-     * This method tries to find operations using both PID and internal ID.
-     *
-     * @param id the ID of the data type (either PID or internal ID)
-     * @return an Iterable of Operation entities
-     */
-    default Iterable<Operation> getOperationsForDataType(String id) {
-        // Try both PID and internal ID
-        Iterable<Operation> byPid = getOperationsForDataTypeByPid(id);
-        Iterable<Operation> byInternalId = getOperationsForDataTypeByInternalId(id);
-
-        // Combine the results
-        return () -> {
-            java.util.Iterator<Operation> pidIterator = byPid.iterator();
-            java.util.Iterator<Operation> internalIdIterator = byInternalId.iterator();
-
-            return new java.util.Iterator<Operation>() {
-                @Override
-                public boolean hasNext() {
-                    return pidIterator.hasNext() || internalIdIterator.hasNext();
-                }
-
-                @Override
-                public Operation next() {
-                    if (pidIterator.hasNext()) {
-                        return pidIterator.next();
-                    }
-                    return internalIdIterator.next();
-                }
-            };
-        };
-    }
 }

@@ -16,9 +16,10 @@
 
 package edu.kit.datamanager.idoris.attributes.dao;
 
-import edu.kit.datamanager.idoris.attributes.entities.Attribute;
-import edu.kit.datamanager.idoris.core.domain.dao.IGenericRepo;
+import edu.kit.datamanager.idoris.core.dao.IGenericRepo;
+import edu.kit.datamanager.idoris.core.domain.Attribute;
 import org.springframework.data.neo4j.repository.query.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface IAttributeDao extends IGenericRepo<Attribute> {
     @Query("MATCH (n:Attribute)" +
@@ -30,4 +31,48 @@ public interface IAttributeDao extends IGenericRepo<Attribute> {
             " WHERE NOT n IN otherNodes" +
             " DETACH DELETE n")
     void deleteOrphanedAttributes();
+
+    // ===== Relationship operations: dataType =====
+    @Query("""
+            MATCH (a:Attribute)
+            WHERE a.internalId = $attributeId OR EXISTS { MATCH (p:PersistentIdentifier {pid: $attributeId})-[:IDENTIFIES]->(a) }
+            OPTIONAL MATCH (a)-[r:dataType]->()
+            DELETE r
+            WITH a
+            MATCH (dt:DataType)
+            WHERE dt.internalId = $dataTypeId OR EXISTS { MATCH (pp:PersistentIdentifier {pid: $dataTypeId})-[:IDENTIFIES]->(dt) }
+            MERGE (a)-[:dataType]->(dt)
+            SET a.dataTypeId = dt.internalId
+            """)
+    void setDataType(@Param("attributeId") String attributeId, @Param("dataTypeId") String dataTypeId);
+
+    @Query("""
+            MATCH (a:Attribute)
+            WHERE a.internalId = $attributeId OR EXISTS { MATCH (p:PersistentIdentifier {pid: $attributeId})-[:IDENTIFIES]->(a) }
+            OPTIONAL MATCH (a)-[r:dataType]->()
+            DELETE r
+            SET a.dataTypeId = null
+            """)
+    void detachDataType(@Param("attributeId") String attributeId);
+
+    // ===== Relationship operations: override =====
+    @Query("""
+            MATCH (a:Attribute)
+            WHERE a.internalId = $attributeId OR EXISTS { MATCH (p:PersistentIdentifier {pid: $attributeId})-[:IDENTIFIES]->(a) }
+            OPTIONAL MATCH (a)-[r:override]->()
+            DELETE r
+            WITH a
+            MATCH (b:Attribute)
+            WHERE b.internalId = $overrideId OR EXISTS { MATCH (pp:PersistentIdentifier {pid: $overrideId})-[:IDENTIFIES]->(b) }
+            MERGE (a)-[:override]->(b)
+            """)
+    void setOverride(@Param("attributeId") String attributeId, @Param("overrideId") String overrideId);
+
+    @Query("""
+            MATCH (a:Attribute)
+            WHERE a.internalId = $attributeId OR EXISTS { MATCH (p:PersistentIdentifier {pid: $attributeId})-[:IDENTIFIES]->(a) }
+            OPTIONAL MATCH (a)-[r:override]->()
+            DELETE r
+            """)
+    void detachOverride(@Param("attributeId") String attributeId);
 }

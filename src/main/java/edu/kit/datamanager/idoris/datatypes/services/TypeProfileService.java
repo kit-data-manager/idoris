@@ -15,9 +15,9 @@
  */
 package edu.kit.datamanager.idoris.datatypes.services;
 
+import edu.kit.datamanager.idoris.core.domain.TypeProfile;
 import edu.kit.datamanager.idoris.core.events.EventPublisherService;
 import edu.kit.datamanager.idoris.datatypes.dao.ITypeProfileDao;
-import edu.kit.datamanager.idoris.datatypes.entities.TypeProfile;
 import edu.kit.datamanager.idoris.rules.validation.ValidationPolicyValidator;
 import edu.kit.datamanager.idoris.rules.validation.ValidationResult;
 import io.micrometer.core.annotation.Counted;
@@ -35,7 +35,7 @@ import java.util.Optional;
 
 /**
  * Service for managing TypeProfile entities.
- * This service provides methods for creating, updating, and retrieving TypeProfile entities.
+ * This logic provides methods for creating, updating, and retrieving TypeProfile entities.
  * It publishes domain events when entities are created, updated, or deleted.
  */
 @Service
@@ -49,7 +49,7 @@ public class TypeProfileService {
      * Creates a new TypeProfileService with the given dependencies.
      *
      * @param typeProfileDao the TypeProfile repository
-     * @param eventPublisher the event publisher service
+     * @param eventPublisher the event publisher logic
      */
     public TypeProfileService(ITypeProfileDao typeProfileDao, EventPublisherService eventPublisher) {
         this.typeProfileDao = typeProfileDao;

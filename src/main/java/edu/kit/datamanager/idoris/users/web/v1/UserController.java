@@ -18,6 +18,7 @@ package edu.kit.datamanager.idoris.users.web.v1;
 
 import edu.kit.datamanager.idoris.core.domain.AdministrativeMetadata;
 import edu.kit.datamanager.idoris.core.domain.User;
+import edu.kit.datamanager.idoris.core.domain.valueObjects.ORCiD;
 import edu.kit.datamanager.idoris.users.api.IUserService;
 import edu.kit.datamanager.idoris.users.web.api.IUserApi;
 import edu.kit.datamanager.idoris.users.web.hateoas.UserModelAssembler;
@@ -37,7 +38,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -145,19 +145,9 @@ public class UserController implements IUserApi {
     @Counted(value = "userController.getUserByORCiD.count", description = "Number of get user by ORCID requests")
     public ResponseEntity<EntityModel<User>> getUserByORCiD(@SpanAttribute("user.orcid") String orcidStr) {
         log.debug("Getting ORCID user by ORCID: {}", orcidStr);
-        URI orcid = null;
-        // Normalize ORCiD string (id or URL) to a URI
-        final String regex = "^https?://orcid.org/(\\d{4}-\\d{4}-\\d{4}-\\d{3}[\\dX])$";
-        if (orcidStr.matches(regex)) {
-            orcid = URI.create(orcidStr);
-        } else if (orcidStr.matches("\\d{4}-\\d{4}-\\d{4}-\\d{3}[\\dX]")) {
-            orcid = URI.create("https://orcid.org/" + orcidStr);
-        } else {
-            log.error("Invalid ORCID format: {}", orcidStr);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid ORCID format: " + orcidStr);
-        }
+        ORCiD orCiD = new ORCiD(orcidStr);
 
-        return IUserService.findUserByORCiD(orcid)
+        return IUserService.findUserByORCiD(orCiD.get())
                 .map(user -> {
                     log.info("Found ORCID user with ORCID: {}", orcidStr);
                     return userModelAssembler.toModel(user);

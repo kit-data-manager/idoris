@@ -15,7 +15,7 @@
  */
 package edu.kit.datamanager.idoris.pids.web.hateoas;
 
-import edu.kit.datamanager.idoris.pids.entities.PersistentIdentifier;
+import edu.kit.datamanager.idoris.pids.domain.PIDNode;
 import edu.kit.datamanager.idoris.pids.web.v1.PidController;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
@@ -26,22 +26,22 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 /**
- * A model assembler for PersistentIdentifier entities.
- * This class converts PersistentIdentifier entities to EntityModel<PersistentIdentifier>
+ * A model assembler for PIDNode entities.
+ * This class converts PIDNode entities to EntityModel<PIDNode>
  * with HATEOAS links.
  * <p>
  * This class combines the functionality of both a RepresentationModelAssembler and a
- * RepresentationModelProcessor, handling all HATEOAS concerns for PersistentIdentifier entities
+ * RepresentationModelProcessor, handling all HATEOAS concerns for PIDNode entities
  * in one place, according to Domain-Driven Design principles.
  */
 @Component
 public class PersistentIdentifierModelAssembler implements
-        RepresentationModelAssembler<PersistentIdentifier, EntityModel<PersistentIdentifier>>,
-        RepresentationModelProcessor<EntityModel<PersistentIdentifier>> {
+        RepresentationModelAssembler<PIDNode, EntityModel<PIDNode>>,
+        RepresentationModelProcessor<EntityModel<PIDNode>> {
 
     @Override
-    public EntityModel<PersistentIdentifier> toModel(PersistentIdentifier pid) {
-        EntityModel<PersistentIdentifier> pidModel = EntityModel.of(pid);
+    public EntityModel<PIDNode> toModel(PIDNode pid) {
+        EntityModel<PIDNode> pidModel = EntityModel.of(pid);
 
         // Add self link
         pidModel.add(linkTo(methodOn(PidController.class).getAllPersistentIdentifiers()).withRel("persistentIdentifiers"));
@@ -50,13 +50,13 @@ public class PersistentIdentifierModelAssembler implements
     }
 
     @Override
-    public EntityModel<PersistentIdentifier> process(EntityModel<PersistentIdentifier> model) {
-        PersistentIdentifier pid = model.getContent();
+    public EntityModel<PIDNode> process(EntityModel<PIDNode> model) {
+        PIDNode pid = model.getContent();
         if (pid == null) {
             return model;
         }
 
-        String pidValue = pid.getPid();
+        String pidValue = pid.getPid().toString();
 
         // Add link to resolve the entity
         model.add(linkTo(methodOn(PidController.class).redirectToEntity(pidValue)).withRel("resolve"));

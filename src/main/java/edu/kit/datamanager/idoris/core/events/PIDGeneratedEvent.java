@@ -16,7 +16,7 @@
 
 package edu.kit.datamanager.idoris.core.events;
 
-import edu.kit.datamanager.idoris.core.domain.entities.AdministrativeMetadata;
+import edu.kit.datamanager.idoris.core.domain.AdministrativeMetadata;
 import lombok.Getter;
 import lombok.ToString;
 
@@ -38,6 +38,17 @@ public class PIDGeneratedEvent<T extends AdministrativeMetadata> extends Abstrac
 
     /**
      * Creates a new PIDGeneratedEvent for the given entity and ID.
+     * Assumes that the ID is newly generated.
+     *
+     * @param entity the entity for which the ID was generated
+     * @param id     the generated ID
+     */
+    public PIDGeneratedEvent(T entity, String id) {
+        this(entity, id, true);
+    }
+
+    /**
+     * Creates a new PIDGeneratedEvent for the given entity and ID.
      *
      * @param entity  the entity for which the ID was generated
      * @param id      the generated ID
@@ -49,17 +60,6 @@ public class PIDGeneratedEvent<T extends AdministrativeMetadata> extends Abstrac
         this.isNewID = isNewID;
         this.entityInternalId = entity.getInternalId();
         this.entityType = entity.getClass().getSimpleName();
-    }
-
-    /**
-     * Creates a new PIDGeneratedEvent for the given entity and ID.
-     * Assumes that the ID is newly generated.
-     *
-     * @param entity the entity for which the ID was generated
-     * @param id     the generated ID
-     */
-    public PIDGeneratedEvent(T entity, String id) {
-        this(entity, id, true);
     }
 
     /**

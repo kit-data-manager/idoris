@@ -16,7 +16,7 @@
 
 package edu.kit.datamanager.idoris.core.events;
 
-import edu.kit.datamanager.idoris.core.domain.entities.AdministrativeMetadata;
+import edu.kit.datamanager.idoris.core.domain.AdministrativeMetadata;
 import lombok.Getter;
 import lombok.ToString;
 

@@ -42,4 +42,7 @@ dependencies {
     // Add Spring annotations as optional (for @Nullable and @Component)
     compileOnly 'org.springframework:spring-core:6.2.7'
     compileOnly 'org.springframework:spring-context:6.2.7'
+
+    // Add SLF4J API for logging
+    compileOnly 'org.slf4j:slf4j-api:2.0.9'
 }

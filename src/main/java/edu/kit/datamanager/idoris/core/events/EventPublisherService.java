@@ -16,7 +16,7 @@
 
 package edu.kit.datamanager.idoris.core.events;
 
-import edu.kit.datamanager.idoris.core.domain.entities.AdministrativeMetadata;
+import edu.kit.datamanager.idoris.core.domain.AdministrativeMetadata;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
@@ -29,7 +29,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * Service for publishing domain events.
- * This service wraps Spring's ApplicationEventPublisher to provide a more domain-specific API.
+ * This logic wraps Spring's ApplicationEventPublisher to provide a more domain-specific API.
  */
 @Service
 @Slf4j
@@ -60,16 +60,6 @@ public class EventPublisherService {
         eventPublisher.publishEvent(new EntityCreatedEvent<>(entity));
     }
 
-    /**
-     * Publishes an entity created event for non-AdministrativeMetadata entities.
-     *
-     * @param entity     the newly created entity
-     * @param entityType the type identifier for the entity
-     */
-    public void publishEntityCreated(Object entity, String entityType) {
-        log.debug("Publishing EntityCreatedEvent for entity: {}, type: {}", entity, entityType);
-        eventPublisher.publishEvent(new GenericEntityCreatedEvent(entity, entityType));
-    }
 
     /**
      * Publishes an entity updated event.
@@ -84,42 +74,6 @@ public class EventPublisherService {
     public <T extends AdministrativeMetadata> void publishEntityUpdated(T entity, @SpanAttribute("entity.previousVersion") Long previousVersion) {
         log.debug("Publishing EntityUpdatedEvent for entity: {}, previous version: {}", entity, previousVersion);
         eventPublisher.publishEvent(new EntityUpdatedEvent<>(entity, previousVersion));
-    }
-
-    /**
-     * Publishes an entity updated event for non-AdministrativeMetadata entities.
-     *
-     * @param entity     the updated entity
-     * @param entityType the type identifier for the entity
-     */
-    public void publishEntityUpdated(Object entity, String entityType) {
-        log.debug("Publishing EntityUpdatedEvent for entity: {}, type: {}", entity, entityType);
-        eventPublisher.publishEvent(new GenericEntityUpdatedEvent(entity, entityType));
-    }
-
-    /**
-     * Publishes an entity deleted event.
-     *
-     * @param entity the deleted entity
-     * @param <T>    the type of entity
-     */
-    @WithSpan(kind = SpanKind.PRODUCER)
-    @Timed(value = "eventPublisherService.publishEntityDeleted", description = "Time taken to publish entity deleted event", histogram = true)
-    @Counted(value = "eventPublisherService.publishEntityDeleted.count", description = "Number of entity deleted events published")
-    public <T extends AdministrativeMetadata> void publishEntityDeleted(T entity) {
-        log.debug("Publishing EntityDeletedEvent for entity: {}", entity);
-        eventPublisher.publishEvent(new EntityDeletedEvent<>(entity));
-    }
-
-    /**
-     * Publishes an entity deleted event for non-AdministrativeMetadata entities.
-     *
-     * @param entity     the deleted entity
-     * @param entityType the type identifier for the entity
-     */
-    public void publishEntityDeleted(Object entity, String entityType) {
-        log.debug("Publishing EntityDeletedEvent for entity: {}, type: {}", entity, entityType);
-        eventPublisher.publishEvent(new GenericEntityDeletedEvent(entity, entityType));
     }
 
     /**
@@ -168,19 +122,6 @@ public class EventPublisherService {
         eventPublisher.publishEvent(new EntityPatchedEvent<>(entity, previousVersion));
     }
 
-    /**
-     * Publishes an entity patched event for non-AdministrativeMetadata entities.
-     *
-     * @param entity     the patched entity
-     * @param entityType the type identifier for the entity
-     */
-    @WithSpan(kind = SpanKind.PRODUCER)
-    @Timed(value = "eventPublisherService.publishEntityPatchedGeneric", description = "Time taken to publish generic entity patched event", histogram = true)
-    @Counted(value = "eventPublisherService.publishEntityPatchedGeneric.count", description = "Number of generic entity patched events published")
-    public void publishEntityPatched(Object entity, @SpanAttribute("entity.type") String entityType) {
-        log.debug("Publishing EntityPatchedEvent for entity: {}, type: {}", entity, entityType);
-        eventPublisher.publishEvent(new GenericEntityPatchedEvent(entity, entityType));
-    }
 
     /**
      * Publishes a generic domain event.
@@ -193,5 +134,19 @@ public class EventPublisherService {
     public void publishEvent(DomainEvent event) {
         log.debug("Publishing event: {}", event);
         eventPublisher.publishEvent(event);
+    }
+
+    /**
+     * Publishes an entity deleted event.
+     *
+     * @param entity the deleted entity
+     * @param <T>    the type of entity
+     */
+    @WithSpan(kind = SpanKind.PRODUCER)
+    @Timed(value = "eventPublisherService.publishEntityDeleted", description = "Time taken to publish entity deleted event", histogram = true)
+    @Counted(value = "eventPublisherService.publishEntityDeleted.count", description = "Number of entity deleted events published")
+    public <T extends AdministrativeMetadata> void publishEntityDeleted(T entity) {
+        log.debug("Publishing EntityDeletedEvent for entity: {}", entity);
+        eventPublisher.publishEvent(new EntityDeletedEvent<>(entity));
     }
 }

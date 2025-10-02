@@ -23,6 +23,6 @@
  */
 @org.springframework.modulith.ApplicationModule(
         displayName = "IDORIS Technology Interfaces",
-        allowedDependencies = {"core"}
+        allowedDependencies = {"core", "attributes :: attributes.services.api", "pids :: api"}
 )
 package edu.kit.datamanager.idoris.technologyinterfaces;

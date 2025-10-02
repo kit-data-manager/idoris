@@ -115,7 +115,7 @@ public interface IUserApi {
      * @param orcidStr the ORCID identifier string of the ORCiDUser to retrieve
      * @return the ORCiDUser entity
      */
-    @GetMapping
+    @GetMapping("/by-orcid/{orcidStr}")
     @Operation(
             summary = "Get user by ORCID",
             description = "Retrieves a user by their ORCID identifier",
@@ -127,7 +127,8 @@ public interface IUserApi {
             }
     )
     ResponseEntity<EntityModel<User>> getUserByORCiD(
-            @RequestParam(required = true, name = "orcid") String orcidStr);
+            @Parameter(description = "ORCID identifier string of the User", required = true)
+            @PathVariable String orcidStr);
 
     /**
      * Gets an ORCiDUser entity by its ORCID.
@@ -135,7 +136,7 @@ public interface IUserApi {
      * @param orcidStr the ORCID identifier string of the ORCiDUser to retrieve
      * @return the ORCiDUser entity
      */
-    @GetMapping
+    @GetMapping("/by-email/{email}")
     @Operation(
             summary = "Get user by e-mail address",
             description = "Retrieves a user by their e-mail address",
@@ -147,7 +148,8 @@ public interface IUserApi {
             }
     )
     ResponseEntity<EntityModel<User>> getUserByEmail(
-            @RequestParam(required = true, name = "e-mail") String orcidStr);
+            @Parameter(description = "E-mail address of the User", required = true)
+            @PathVariable String email);
 
     /**
      * Updates an existing User entity.

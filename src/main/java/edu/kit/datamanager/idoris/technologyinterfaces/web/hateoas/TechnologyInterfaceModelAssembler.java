@@ -16,8 +16,8 @@
 
 package edu.kit.datamanager.idoris.technologyinterfaces.web.hateoas;
 
-import edu.kit.datamanager.idoris.core.domain.web.hateoas.EntityModelAssembler;
-import edu.kit.datamanager.idoris.technologyinterfaces.entities.TechnologyInterface;
+import edu.kit.datamanager.idoris.core.domain.TechnologyInterface;
+import edu.kit.datamanager.idoris.core.web.hateoas.EntityModelAssembler;
 import edu.kit.datamanager.idoris.technologyinterfaces.web.v1.TechnologyInterfaceController;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.stereotype.Component;

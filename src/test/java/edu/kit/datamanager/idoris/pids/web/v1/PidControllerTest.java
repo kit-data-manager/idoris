@@ -16,8 +16,8 @@
 
 package edu.kit.datamanager.idoris.pids.web.v1;
 
-import edu.kit.datamanager.idoris.core.domain.entities.AdministrativeMetadata;
-import edu.kit.datamanager.idoris.pids.entities.PersistentIdentifier;
+import edu.kit.datamanager.idoris.core.domain.AdministrativeMetadata;
+import edu.kit.datamanager.idoris.pids.domain.PIDNode;
 import edu.kit.datamanager.idoris.pids.services.PersistentIdentifierService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,9 +60,9 @@ class PidControllerTest {
     @Test
     void getAllPersistentIdentifiers_shouldReturnAllPersistentIdentifiers() throws Exception {
         // Arrange
-        PersistentIdentifier pid1 = createPersistentIdentifier("pid1", "TestEntity", "entity1", false);
-        PersistentIdentifier pid2 = createPersistentIdentifier("pid2", "TestEntity", "entity2", false);
-        List<PersistentIdentifier> pids = List.of(pid1, pid2);
+        PIDNode pid1 = createPersistentIdentifier("pid1", "TestEntity", "entity1", false);
+        PIDNode pid2 = createPersistentIdentifier("pid2", "TestEntity", "entity2", false);
+        List<PIDNode> pids = List.of(pid1, pid2);
 
         when(pidService.getAllPersistentIdentifiers()).thenReturn(pids);
 
@@ -75,6 +75,22 @@ class PidControllerTest {
                 .andExpect(jsonPath("$[1].pid", is("pid2")));
     }
 
+    private PIDNode createPersistentIdentifier(String pid, String entityType, String entityInternalId, boolean tombstone) {
+        PIDNode PIDNode = new PIDNode();
+        PIDNode.setPid(pid);
+        PIDNode.setEntityType(entityType);
+        PIDNode.setEntityInternalId(entityInternalId);
+        PIDNode.setTombstone(tombstone);
+        if (tombstone) {
+            PIDNode.setDeletedAt(Instant.now());
+        }
+        PIDNode.setCreatedAt(Instant.now());
+        PIDNode.setLastModifiedAt(Instant.now());
+        PIDNode.setVersion(1L);
+        edu.kit.datamanager.idoris.pids.domain.PIDNode.setMetadata(new HashMap<>());
+        return PIDNode;
+    }
+
     @Test
     void redirectToEntity_withExistingPid_shouldRedirectToEntity() throws Exception {
         // Arrange
@@ -82,7 +98,7 @@ class PidControllerTest {
         String entityType = "testentity";
         String entityId = "entity-id";
 
-        PersistentIdentifier pid = createPersistentIdentifier(pidValue, "TestEntity", entityId, false);
+        PIDNode pid = createPersistentIdentifier(pidValue, "TestEntity", entityId, false);
         pid.setEntity(mock(AdministrativeMetadata.class));
 
         when(pidService.getPersistentIdentifier(pidValue)).thenReturn(Optional.of(pid));
@@ -98,7 +114,7 @@ class PidControllerTest {
         // Arrange
         String pidValue = "test-pid";
 
-        PersistentIdentifier pid = createPersistentIdentifier(pidValue, "TestEntity", "entity-id", true);
+        PIDNode pid = createPersistentIdentifier(pidValue, "TestEntity", "entity-id", true);
 
         when(pidService.getPersistentIdentifier(pidValue)).thenReturn(Optional.of(pid));
 
@@ -125,7 +141,7 @@ class PidControllerTest {
         // Arrange
         String pidValue = "test-pid";
 
-        PersistentIdentifier pid = createPersistentIdentifier(pidValue, "TestEntity", "entity-id", false);
+        PIDNode pid = createPersistentIdentifier(pidValue, "TestEntity", "entity-id", false);
         pid.setEntity(null);
 
         when(pidService.getPersistentIdentifier(pidValue)).thenReturn(Optional.of(pid));
@@ -141,7 +157,7 @@ class PidControllerTest {
         String pidValue = "test-pid";
         Instant deletedAt = Instant.parse("2023-01-01T00:00:00Z");
 
-        PersistentIdentifier pid = createPersistentIdentifier(pidValue, "TestEntity", "entity-id", true);
+        PIDNode pid = createPersistentIdentifier(pidValue, "TestEntity", "entity-id", true);
         pid.setDeletedAt(deletedAt);
 
         when(pidService.getPersistentIdentifier(pidValue)).thenReturn(Optional.of(pid));
@@ -157,7 +173,7 @@ class PidControllerTest {
         // Arrange
         String pidValue = "test-pid";
 
-        PersistentIdentifier pid = createPersistentIdentifier(pidValue, "TestEntity", "entity-id", false);
+        PIDNode pid = createPersistentIdentifier(pidValue, "TestEntity", "entity-id", false);
 
         when(pidService.getPersistentIdentifier(pidValue)).thenReturn(Optional.of(pid));
 
@@ -177,21 +193,5 @@ class PidControllerTest {
         // Act & Assert
         mockMvc.perform(get("/pid/tombstone/{pidValue}", pidValue))
                 .andExpect(status().isNotFound());
-    }
-
-    private PersistentIdentifier createPersistentIdentifier(String pid, String entityType, String entityInternalId, boolean tombstone) {
-        PersistentIdentifier persistentIdentifier = new PersistentIdentifier();
-        persistentIdentifier.setPid(pid);
-        persistentIdentifier.setEntityType(entityType);
-        persistentIdentifier.setEntityInternalId(entityInternalId);
-        persistentIdentifier.setTombstone(tombstone);
-        if (tombstone) {
-            persistentIdentifier.setDeletedAt(Instant.now());
-        }
-        persistentIdentifier.setCreatedAt(Instant.now());
-        persistentIdentifier.setLastModifiedAt(Instant.now());
-        persistentIdentifier.setVersion(1L);
-        persistentIdentifier.setMetadata(new HashMap<>());
-        return persistentIdentifier;
     }
 }

@@ -16,9 +16,9 @@
 
 package edu.kit.datamanager.idoris.datatypes.dao;
 
-import edu.kit.datamanager.idoris.core.domain.dao.IGenericRepo;
-import edu.kit.datamanager.idoris.datatypes.entities.DataType;
-import edu.kit.datamanager.idoris.operations.entities.Operation;
+import edu.kit.datamanager.idoris.core.dao.IGenericRepo;
+import edu.kit.datamanager.idoris.core.domain.DataType;
+import edu.kit.datamanager.idoris.core.domain.Operation;
 import org.springframework.data.neo4j.repository.query.Query;
 
 import java.util.Optional;
@@ -27,6 +27,23 @@ import java.util.Optional;
  * Repository interface for DataType entities.
  */
 public interface IDataTypeDao extends IGenericRepo<DataType> {
+    /**
+     * Finds all DataType entities in the inheritance chain of the given DataType.
+     * This method first tries to find the entity by PID, and if not found, tries to find it by internal ID.
+     *
+     * @param id the ID of the DataType (either PID or internal ID)
+     * @return an Iterable of DataType entities in the inheritance chain
+     */
+    default Iterable<DataType> findAllInInheritanceChain(String id) {
+        // First try to find by PID
+        Optional<DataType> byPid = findByPid(id);
+        if (byPid.isPresent()) {
+            return findAllInInheritanceChainByPid(id);
+        }
+        // If not found by PID, try to find by internal ID
+        return findAllInInheritanceChainByInternalId(id);
+    }
+
     /**
      * Finds all DataType entities in the inheritance chain of the given DataType.
      *
@@ -46,20 +63,22 @@ public interface IDataTypeDao extends IGenericRepo<DataType> {
     Iterable<DataType> findAllInInheritanceChainByInternalId(String internalId);
 
     /**
-     * Finds all DataType entities in the inheritance chain of the given DataType.
+     * Gets operations that can be executed on a data type.
+     * This method finds operations that are executable on the given data type, its attributes,
+     * or any data type in its inheritance chain.
      * This method first tries to find the entity by PID, and if not found, tries to find it by internal ID.
      *
-     * @param id the ID of the DataType (either PID or internal ID)
-     * @return an Iterable of DataType entities in the inheritance chain
+     * @param id the ID of the data type (either PID or internal ID)
+     * @return an Iterable of Operation entities
      */
-    default Iterable<DataType> findAllInInheritanceChain(String id) {
+    default Iterable<Operation> getOperations(String id) {
         // First try to find by PID
         Optional<DataType> byPid = findByPid(id);
         if (byPid.isPresent()) {
-            return findAllInInheritanceChainByPid(id);
+            return getOperationsByPid(id);
         }
         // If not found by PID, try to find by internal ID
-        return findAllInInheritanceChainByInternalId(id);
+        return getOperationsByInternalId(id);
     }
 
     /**
@@ -83,23 +102,4 @@ public interface IDataTypeDao extends IGenericRepo<DataType> {
      */
     @Query("Match (:DataType {internalId: $internalId})-[:attributes|inheritsFrom*]->(:DataType)<-[:dataType]-(:Attribute)<-[:executableOn]-(o:Operation) return o")
     Iterable<Operation> getOperationsByInternalId(String internalId);
-
-    /**
-     * Gets operations that can be executed on a data type.
-     * This method finds operations that are executable on the given data type, its attributes,
-     * or any data type in its inheritance chain.
-     * This method first tries to find the entity by PID, and if not found, tries to find it by internal ID.
-     *
-     * @param id the ID of the data type (either PID or internal ID)
-     * @return an Iterable of Operation entities
-     */
-    default Iterable<Operation> getOperations(String id) {
-        // First try to find by PID
-        Optional<DataType> byPid = findByPid(id);
-        if (byPid.isPresent()) {
-            return getOperationsByPid(id);
-        }
-        // If not found by PID, try to find by internal ID
-        return getOperationsByInternalId(id);
-    }
 }

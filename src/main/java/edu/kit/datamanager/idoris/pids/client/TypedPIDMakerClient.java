@@ -33,8 +33,8 @@ import org.springframework.web.service.annotation.PostExchange;
 import org.springframework.web.service.annotation.PutExchange;
 
 /**
- * Client for the Typed PID Maker service.
- * This interface defines the operations for interacting with the service.
+ * Client for the Typed PID Maker logic.
+ * This interface defines the operations for interacting with the logic.
  */
 @HttpExchange("/api/v1/pit/pid")
 @Observed(contextualName = "pidMakerClient")

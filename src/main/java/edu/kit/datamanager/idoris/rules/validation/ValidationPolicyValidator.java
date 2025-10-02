@@ -16,9 +16,9 @@
 
 package edu.kit.datamanager.idoris.rules.validation;
 
-import edu.kit.datamanager.idoris.attributes.entities.Attribute;
+import edu.kit.datamanager.idoris.core.domain.Attribute;
+import edu.kit.datamanager.idoris.core.domain.TypeProfile;
 import edu.kit.datamanager.idoris.core.domain.enums.CombinationOptions;
-import edu.kit.datamanager.idoris.datatypes.entities.TypeProfile;
 import edu.kit.datamanager.idoris.rules.logic.Rule;
 import edu.kit.datamanager.idoris.rules.logic.RuleTask;
 import io.micrometer.core.annotation.Counted;
@@ -58,7 +58,6 @@ public class ValidationPolicyValidator extends ValidationVisitor {
      * @param args        Additional arguments (not used in this implementation)
      * @return ValidationResult containing any validation errors
      */
-    @Override
     @WithSpan(kind = SpanKind.INTERNAL)
     @Timed(value = "rules.validationPolicyValidator.visitTypeProfile", description = "Time to validate policy for TypeProfile", histogram = true)
     @Counted(value = "rules.validationPolicyValidator.visitTypeProfile.count", description = "Number of TypeProfile validation policy validations")
@@ -87,7 +86,7 @@ public class ValidationPolicyValidator extends ValidationVisitor {
                 case ALL -> {
                     for (Attribute attribute : parent.getAttributes()) {
                         List<Attribute> undefinedAttributes = typeProfile.getAttributes().stream()
-                                .filter(a -> a.getDataType().equals(attribute.getDataType()))
+                                .filter(a -> java.util.Objects.equals(a.getDataTypeId(), attribute.getDataTypeId()))
                                 .toList();
 
                         if (!undefinedAttributes.isEmpty()) {
@@ -101,7 +100,7 @@ public class ValidationPolicyValidator extends ValidationVisitor {
                 }
                 case ANY -> {
                     if (typeProfile.getAttributes().stream().noneMatch(a -> parent.getAttributes().stream()
-                            .anyMatch(pa -> pa.getDataType().equals(a.getDataType())))) {
+                            .anyMatch(pa -> java.util.Objects.equals(pa.getDataTypeId(), a.getDataTypeId())))) {
                         result.addMessage("TypeProfile " + typeProfile.getId() + " does not define any property defined in the TypeProfile " +
                                         parent.getId() + " that requires at least one property.",
                                 getTypeProfileAndParentElementaryInformation(typeProfile, parent, null), ERROR);
@@ -109,7 +108,7 @@ public class ValidationPolicyValidator extends ValidationVisitor {
                 }
                 case ONE -> {
                     if (typeProfile.getAttributes().stream().filter(a -> parent.getAttributes().stream()
-                            .anyMatch(pa -> pa.getDataType().equals(a.getDataType()))).count() != 1) {
+                            .anyMatch(pa -> java.util.Objects.equals(pa.getDataTypeId(), a.getDataTypeId()))).count() != 1) {
                         result.addMessage("TypeProfile " + typeProfile.getId() + " does not define exactly one property defined in the TypeProfile " +
                                         parent.getId() + " that requires exactly one property.",
                                 getTypeProfileAndParentElementaryInformation(typeProfile, parent, null), ERROR);
@@ -117,7 +116,7 @@ public class ValidationPolicyValidator extends ValidationVisitor {
                 }
                 case NONE -> {
                     List<Attribute> illegallyDefinedAttributes = typeProfile.getAttributes().stream()
-                            .filter(a -> parent.getAttributes().stream().anyMatch(pa -> pa.getDataType().equals(a.getDataType())))
+                            .filter(a -> parent.getAttributes().stream().anyMatch(pa -> java.util.Objects.equals(pa.getDataTypeId(), a.getDataTypeId())))
                             .toList();
 
                     if (!illegallyDefinedAttributes.isEmpty()) {
@@ -148,8 +147,8 @@ public class ValidationPolicyValidator extends ValidationVisitor {
     @Counted(value = "rules.validationPolicyValidator.getElementaryInformation.count", description = "Number of elementary information builds")
     private Map<String, Object> getTypeProfileAndParentElementaryInformation(TypeProfile typeProfile, TypeProfile parent, Map<String, Object> otherInformation) {
         Map<String, Object> result = new HashMap<>();
-        result.put("this", new ElementaryInformation(typeProfile.getId(), typeProfile.getName(), typeProfile.getValidationPolicy()));
-        result.put("parent", new ElementaryInformation(parent.getId(), parent.getName(), parent.getValidationPolicy()));
+        result.put("this", new ElementaryInformation(typeProfile.getId(), typeProfile.getName().toString(), typeProfile.getValidationPolicy()));
+        result.put("parent", new ElementaryInformation(parent.getId(), parent.getName().toString(), parent.getValidationPolicy()));
         result.put("otherInformation", otherInformation);
         return result;
     }

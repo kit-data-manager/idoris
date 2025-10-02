@@ -13,15 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package edu.kit.datamanager.idoris.attributes.web.v1;
 
-import edu.kit.datamanager.idoris.attributes.entities.Attribute;
-import edu.kit.datamanager.idoris.attributes.services.AttributeService;
-import edu.kit.datamanager.idoris.attributes.web.api.IAttributeApi;
+import edu.kit.datamanager.idoris.attributes.api.IAttributeExternalService;
+import edu.kit.datamanager.idoris.attributes.dto.AttributeDto;
 import edu.kit.datamanager.idoris.attributes.web.hateoas.AttributeModelAssembler;
-import edu.kit.datamanager.idoris.datatypes.entities.DataType;
-import edu.kit.datamanager.idoris.datatypes.web.hateoas.DataTypeModelAssembler;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
@@ -29,199 +25,135 @@ import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+import java.util.Optional;
 
 /**
- * REST controller for Attribute entities.
- * This controller provides endpoints for managing Attribute entities.
+ * DTO-first REST controller for Attributes.
+ * Provides endpoints for managing Attributes using DTOs exclusively.
  */
 @RestController
 @RequestMapping("/v1/attributes")
 @Slf4j
 @Observed(contextualName = "attributeController")
-public class AttributeController implements IAttributeApi {
+public class AttributeController {
 
-    private final AttributeService attributeService;
-    private final AttributeModelAssembler attributeModelAssembler;
-    private final DataTypeModelAssembler dataTypeModelAssembler;
+    @Autowired
+    private IAttributeExternalService attributeService;
 
-    public AttributeController(AttributeService attributeService, AttributeModelAssembler attributeModelAssembler, DataTypeModelAssembler dataTypeModelAssembler) {
-        this.attributeService = attributeService;
-        this.attributeModelAssembler = attributeModelAssembler;
-        this.dataTypeModelAssembler = dataTypeModelAssembler;
+    @Autowired
+    private AttributeModelAssembler assembler;
+
+    @GetMapping
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "attributeController.list", description = "Time taken to list attributes", histogram = true)
+    @Counted(value = "attributeController.list.count", description = "Number of attribute list requests")
+    public ResponseEntity<CollectionModel<EntityModel<AttributeDto>>> list() {
+        List<AttributeDto> list = attributeService.list();
+        return ResponseEntity.ok(assembler.toCollectionModel(list));
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
+    @GetMapping("/{id}")
     @WithSpan(kind = SpanKind.SERVER)
-    @Timed(value = "attributeController.getAllAttributes", description = "Time taken to get all attributes", histogram = true)
-    @Counted(value = "attributeController.getAllAttributes.count", description = "Number of get all attributes requests")
-    public ResponseEntity<CollectionModel<EntityModel<Attribute>>> getAllAttributes() {
-        log.debug("Getting all Attributes");
-        List<EntityModel<Attribute>> attributes = attributeService.getAllAttributes().stream()
-                .map(attributeModelAssembler::toModel)
-                .collect(Collectors.toList());
-
-        CollectionModel<EntityModel<Attribute>> collectionModel = CollectionModel.of(
-                attributes,
-                linkTo(methodOn(AttributeController.class).getAllAttributes()).withSelfRel()
-        );
-
-        log.info("Retrieved {} attributes", attributes.size());
-        return ResponseEntity.ok(collectionModel);
+    @Timed(value = "attributeController.get", description = "Time taken to get attribute", histogram = true)
+    @Counted(value = "attributeController.get.count", description = "Number of attribute get requests")
+    public ResponseEntity<EntityModel<AttributeDto>> get(@SpanAttribute("attribute.id") @PathVariable String id) {
+        Optional<AttributeDto> dto = attributeService.get(id);
+        return dto.map(d -> ResponseEntity.ok(assembler.toModel(d)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
+    @PostMapping
     @WithSpan(kind = SpanKind.SERVER)
-    @Timed(value = "attributeController.getAttribute", description = "Time taken to get an attribute", histogram = true)
-    @Counted(value = "attributeController.getAttribute.count", description = "Number of get attribute requests")
-    public ResponseEntity<EntityModel<Attribute>> getAttribute(@SpanAttribute("attribute.pid") String pid) {
-        log.debug("Getting Attribute with PID: {}", pid);
-        return attributeService.getAttribute(pid)
-                .map(attribute -> {
-                    log.info("Found Attribute with PID: {}", pid);
-                    return attributeModelAssembler.toModel(attribute);
-                })
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> {
-                    log.warn("Attribute not found with PID: {}", pid);
-                    return ResponseEntity.notFound().build();
-                });
+    @Timed(value = "attributeController.create", description = "Time taken to create attribute", histogram = true)
+    @Counted(value = "attributeController.create.count", description = "Number of attribute create requests")
+    public ResponseEntity<EntityModel<AttributeDto>> create(@RequestBody AttributeDto dto) {
+        AttributeDto created = attributeService.create(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(assembler.toModel(created));
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
+    @PutMapping("/{id}")
     @WithSpan(kind = SpanKind.SERVER)
-    @Timed(value = "attributeController.getDataType", description = "Time taken to get a data type", histogram = true)
-    @Counted(value = "attributeController.getDataType.count", description = "Number of get data type requests")
-    public ResponseEntity<EntityModel<DataType>> getDataType(@SpanAttribute("attribute.pid") String pid) {
-        log.debug("Getting DataType for Attribute with PID: {}", pid);
-        return attributeService.getAttribute(pid)
-                .map(attribute -> {
-                    log.info("Found DataType for Attribute with PID: {}", pid);
-                    return attribute.getDataType();
-                })
-                .map(dataTypeModelAssembler::toModel)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> {
-                    log.warn("Attribute not found with PID: {}", pid);
-                    return ResponseEntity.notFound().build();
-                });
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    @WithSpan(kind = SpanKind.SERVER)
-    @Timed(value = "attributeController.createAttribute", description = "Time taken to create an attribute", histogram = true)
-    @Counted(value = "attributeController.createAttribute.count", description = "Number of create attribute requests")
-    public ResponseEntity<EntityModel<Attribute>> createAttribute(@SpanAttribute Attribute attribute) {
-        log.debug("Creating Attribute: {}", attribute.getName());
-        Attribute createdAttribute = attributeService.createAttribute(attribute);
-        EntityModel<Attribute> entityModel = attributeModelAssembler.toModel(createdAttribute);
-        log.info("Created Attribute with PID: {}", createdAttribute.getId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(entityModel);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    @WithSpan(kind = SpanKind.SERVER)
-    @Timed(value = "attributeController.updateAttribute", description = "Time taken to update an attribute", histogram = true)
-    @Counted(value = "attributeController.updateAttribute.count", description = "Number of update attribute requests")
-    public ResponseEntity<EntityModel<Attribute>> updateAttribute(@SpanAttribute("attribute.id") String id, @SpanAttribute Attribute attribute) {
-        log.debug("Updating Attribute with ID: {}", id);
-        // Check if the entity exists
-        if (attributeService.getAttribute(id).isEmpty()) {
-            log.warn("Attribute not found with ID: {}", id);
+    @Timed(value = "attributeController.update", description = "Time taken to update attribute", histogram = true)
+    @Counted(value = "attributeController.update.count", description = "Number of attribute update requests")
+    public ResponseEntity<EntityModel<AttributeDto>> update(@SpanAttribute("attribute.id") @PathVariable String id, @RequestBody AttributeDto dto) {
+        if (attributeService.get(id).isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-
-        // Get the existing entity to get its PID and internalId
-        Attribute existing = attributeService.getAttribute(id).get();
-
-        // Set the PID from the existing entity
-        attribute.setInternalId(existing.getId());
-
-        // Ensure internal ID is preserved
-        attribute.setInternalId(existing.getInternalId());
-
-        Attribute updatedAttribute = attributeService.updateAttribute(attribute);
-        EntityModel<Attribute> entityModel = attributeModelAssembler.toModel(updatedAttribute);
-        log.info("Updated Attribute with ID: {}", id);
-        return ResponseEntity.ok(entityModel);
+        AttributeDto updated = attributeService.update(id, dto);
+        return ResponseEntity.ok(assembler.toModel(updated));
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
+    @PatchMapping("/{id}")
     @WithSpan(kind = SpanKind.SERVER)
-    @Timed(value = "attributeController.deleteAttribute", description = "Time taken to delete an attribute", histogram = true)
-    @Counted(value = "attributeController.deleteAttribute.count", description = "Number of delete attribute requests")
-    public ResponseEntity<Void> deleteAttribute(@SpanAttribute("attribute.pid") String pid) {
-        log.debug("Deleting Attribute with PID: {}", pid);
-        if (attributeService.getAttribute(pid).isEmpty()) {
-            log.warn("Attribute not found with PID: {}", pid);
+    @Timed(value = "attributeController.patch", description = "Time taken to patch attribute", histogram = true)
+    @Counted(value = "attributeController.patch.count", description = "Number of attribute patch requests")
+    public ResponseEntity<EntityModel<AttributeDto>> patch(@SpanAttribute("attribute.id") @PathVariable String id, @RequestBody AttributeDto dto) {
+        if (attributeService.get(id).isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+        AttributeDto patched = attributeService.patch(id, dto);
+        return ResponseEntity.ok(assembler.toModel(patched));
+    }
 
-        attributeService.deleteAttribute(pid);
-        log.info("Deleted Attribute with PID: {}", pid);
+    @DeleteMapping("/{id}")
+    @WithSpan(kind = SpanKind.SERVER)
+    @Timed(value = "attributeController.delete", description = "Time taken to delete attribute", histogram = true)
+    @Counted(value = "attributeController.delete.count", description = "Number of attribute delete requests")
+    public ResponseEntity<Void> delete(@SpanAttribute("attribute.id") @PathVariable String id) {
+        if (attributeService.get(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        attributeService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    @WithSpan(kind = SpanKind.SERVER)
-    @Timed(value = "attributeController.deleteOrphanedAttributes", description = "Time taken to delete orphaned attributes", histogram = true)
-    @Counted(value = "attributeController.deleteOrphanedAttributes.count", description = "Number of delete orphaned attributes requests")
-    public ResponseEntity<Void> deleteOrphanedAttributes() {
-        log.debug("Deleting orphaned attributes");
-        attributeService.deleteOrphanedAttributes();
-        log.info("Deleted orphaned attributes");
-        return ResponseEntity.noContent().build();
-    }
+    // Relationship endpoints
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
+    @PostMapping("/{id}/dataType")
     @WithSpan(kind = SpanKind.SERVER)
-    @Timed(value = "attributeController.patchAttribute", description = "Time taken to patch an attribute", histogram = true)
-    @Counted(value = "attributeController.patchAttribute.count", description = "Number of patch attribute requests")
-    public ResponseEntity<EntityModel<Attribute>> patchAttribute(@SpanAttribute("attribute.pid") String pid, @SpanAttribute Attribute attributePatch) {
-        log.debug("Patching Attribute with PID: {}", pid);
-        if (attributeService.getAttribute(pid).isEmpty()) {
-            log.warn("Attribute not found with PID: {}", pid);
+    public ResponseEntity<EntityModel<AttributeDto>> setDataType(@PathVariable String id, @RequestBody String dataTypeId) {
+        if (attributeService.get(id).isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+        AttributeDto dto = attributeService.setDataType(id, dataTypeId);
+        return ResponseEntity.ok(assembler.toModel(dto));
+    }
 
-        Attribute patchedAttribute = attributeService.patchAttribute(pid, attributePatch);
-        EntityModel<Attribute> entityModel = attributeModelAssembler.toModel(patchedAttribute);
-        log.info("Patched Attribute with PID: {}", pid);
-        return ResponseEntity.ok(entityModel);
+    @DeleteMapping("/{id}/dataType")
+    @WithSpan(kind = SpanKind.SERVER)
+    public ResponseEntity<EntityModel<AttributeDto>> detachDataType(@PathVariable String id) {
+        if (attributeService.get(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        AttributeDto dto = attributeService.detachDataType(id);
+        return ResponseEntity.ok(assembler.toModel(dto));
+    }
+
+    @PostMapping("/{id}/override")
+    @WithSpan(kind = SpanKind.SERVER)
+    public ResponseEntity<EntityModel<AttributeDto>> setOverride(@PathVariable String id, @RequestBody String overrideAttributeId) {
+        if (attributeService.get(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        AttributeDto dto = attributeService.setOverride(id, overrideAttributeId);
+        return ResponseEntity.ok(assembler.toModel(dto));
+    }
+
+    @DeleteMapping("/{id}/override")
+    @WithSpan(kind = SpanKind.SERVER)
+    public ResponseEntity<EntityModel<AttributeDto>> detachOverride(@PathVariable String id) {
+        if (attributeService.get(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        AttributeDto dto = attributeService.detachOverride(id);
+        return ResponseEntity.ok(assembler.toModel(dto));
     }
 }

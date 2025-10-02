@@ -16,9 +16,9 @@
 
 package edu.kit.datamanager.idoris.operations.services;
 
+import edu.kit.datamanager.idoris.core.domain.valueObjects.AttributeMapping;
 import edu.kit.datamanager.idoris.core.events.EventPublisherService;
 import edu.kit.datamanager.idoris.operations.dao.IAttributeMappingDao;
-import edu.kit.datamanager.idoris.operations.entities.AttributeMapping;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +28,7 @@ import java.util.Optional;
 
 /**
  * Service for managing AttributeMapping entities.
- * This service provides methods for creating, updating, and retrieving AttributeMapping entities.
+ * This logic provides methods for creating, updating, and retrieving AttributeMapping entities.
  * It publishes domain events when entities are created, updated, or deleted.
  */
 @Service
@@ -41,7 +41,7 @@ public class AttributeMappingService {
      * Creates a new AttributeMappingService with the given dependencies.
      *
      * @param attributeMappingDao the AttributeMapping repository
-     * @param eventPublisher      the event publisher service
+     * @param eventPublisher      the event publisher logic
      */
     public AttributeMappingService(IAttributeMappingDao attributeMappingDao, EventPublisherService eventPublisher) {
         this.attributeMappingDao = attributeMappingDao;
@@ -58,7 +58,7 @@ public class AttributeMappingService {
     public AttributeMapping createAttributeMapping(AttributeMapping attributeMapping) {
         log.debug("Creating AttributeMapping: {}", attributeMapping);
         AttributeMapping saved = attributeMappingDao.save(attributeMapping);
-        eventPublisher.publishEntityCreated(saved, "AttributeMapping");
+        // AttributeMapping is not an AdministrativeMetadata aggregate; no module-scoped entity event published here.
         log.info("Created AttributeMapping with ID: {}", saved.getId());
         return saved;
     }
@@ -84,7 +84,7 @@ public class AttributeMappingService {
         }
 
         AttributeMapping saved = attributeMappingDao.save(attributeMapping);
-        eventPublisher.publishEntityUpdated(saved, "AttributeMapping");
+        // No module-scoped event for AttributeMapping updates (non-aggregate)
         log.info("Updated AttributeMapping with ID: {}", saved.getId());
         return saved;
     }
@@ -103,7 +103,7 @@ public class AttributeMappingService {
                 .orElseThrow(() -> new IllegalArgumentException("AttributeMapping not found with ID: " + id));
 
         attributeMappingDao.delete(attributeMapping);
-        eventPublisher.publishEntityDeleted(attributeMapping, "AttributeMapping");
+        // No module-scoped event for AttributeMapping deletions (non-aggregate)
         log.info("Deleted AttributeMapping with ID: {}", id);
     }
 
@@ -130,19 +130,6 @@ public class AttributeMappingService {
         return attributeMappingDao.findAll();
     }
 
-    /**
-     * Finds AttributeMapping entities by input attribute PID.
-     *
-     * @param pid the PID of the input attribute
-     * @return a list of AttributeMapping entities
-     * @deprecated Use {@link #findByInputAttributeId(String)} instead
-     */
-    @Transactional(readOnly = true)
-    @Deprecated
-    public List<AttributeMapping> findByInputAttributePid(String pid) {
-        log.debug("Finding AttributeMappings by input attribute PID: {}", pid);
-        return (List<AttributeMapping>) attributeMappingDao.findByInputAttributePid(pid);
-    }
 
     /**
      * Finds AttributeMapping entities by input attribute ID (either PID or internal ID).
@@ -156,19 +143,6 @@ public class AttributeMappingService {
         return (List<AttributeMapping>) attributeMappingDao.findByInputAttributeId(id);
     }
 
-    /**
-     * Finds AttributeMapping entities by output attribute PID.
-     *
-     * @param pid the PID of the output attribute
-     * @return a list of AttributeMapping entities
-     * @deprecated Use {@link #findByOutputAttributeId(String)} instead
-     */
-    @Transactional(readOnly = true)
-    @Deprecated
-    public List<AttributeMapping> findByOutputAttributePid(String pid) {
-        log.debug("Finding AttributeMappings by output attribute PID: {}", pid);
-        return (List<AttributeMapping>) attributeMappingDao.findByOutputAttributePid(pid);
-    }
 
     /**
      * Finds AttributeMapping entities by output attribute ID (either PID or internal ID).

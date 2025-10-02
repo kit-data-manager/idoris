@@ -16,9 +16,9 @@
 
 package edu.kit.datamanager.idoris.pids;
 
-import edu.kit.datamanager.idoris.configuration.TypedPIDMakerConfig;
-import edu.kit.datamanager.idoris.core.domain.entities.AdministrativeMetadata;
-import edu.kit.datamanager.idoris.pids.entities.PersistentIdentifier;
+import edu.kit.datamanager.idoris.core.configuration.TypedPIDMakerConfig;
+import edu.kit.datamanager.idoris.core.domain.AdministrativeMetadata;
+import edu.kit.datamanager.idoris.pids.domain.PIDNode;
 import edu.kit.datamanager.idoris.pids.services.PersistentIdentifierService;
 import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
@@ -30,35 +30,22 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 /**
- * ID generator that uses the PersistentIdentifierService to generate PIDs.
- * This implementation creates separate nodes in Neo4j that point to the entities.
+ * ID generator that talks directly to Typed PID Maker to generate PIDs for new entities
+ * and optionally updates existing PID records. This mirrors the external API and is
+ * intentionally simple for testing.
  */
 @Component
 @Slf4j
 @ConditionalOnBean(TypedPIDMakerConfig.class)
 public class TypedPIDMakerIDGenerator implements IdGenerator<String> {
-
     private final PersistentIdentifierService pidService;
 
-    /**
-     * Constructor.
-     *
-     * @param pidService The PersistentIdentifierService
-     */
     @Autowired
     public TypedPIDMakerIDGenerator(PersistentIdentifierService pidService) {
         this.pidService = pidService;
         log.info("Initialized TypedPIDMakerIDGenerator with PersistentIdentifierService");
     }
 
-    /**
-     * Generates a PID for the given entity.
-     * This method creates a new PersistentIdentifier entity that points to the given entity.
-     *
-     * @param primaryLabel The primary label of the entity
-     * @param entity       The entity to generate a PID for
-     * @return The generated PID
-     */
     @Override
     @Nonnull
     public String generateId(String primaryLabel, Object entity) {
@@ -71,10 +58,10 @@ public class TypedPIDMakerIDGenerator implements IdGenerator<String> {
             log.debug("Creating PersistentIdentifier for entity: {}", idorisEntity);
 
             // Create a new PersistentIdentifier for the entity
-            PersistentIdentifier pid = pidService.createPersistentIdentifier(idorisEntity);
+            PIDNode pid = pidService.createPersistentIdentifier(idorisEntity);
 
             log.info("Created PersistentIdentifier with PID: {}", pid.getPid());
-            return pid.getPid();
+            return pid.getPid().toString();
         } catch (Exception e) {
             log.error("Failed to create PersistentIdentifier: {}", e.getMessage());
             log.warn("Falling back to UUID generation");

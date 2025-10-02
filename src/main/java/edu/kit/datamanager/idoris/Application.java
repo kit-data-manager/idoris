@@ -47,6 +47,17 @@ public class Application {
         System.out.println("---------------------------------\n");
     }
 
+//    // In your Spring configuration class or application context setup:
+//    @Bean
+//    public ObjectMapper customObjectMapper() {
+//        ObjectMapper mapper = new ObjectMapper();
+//
+//        // Add the custom module to Jackson's object mapper
+//        mapper.registerModule(new ValueObjectJacksonModule());
+//
+//        return mapper;
+//    }
+
     @Bean
     Configuration cypherDslConfiguration() {
         return Configuration

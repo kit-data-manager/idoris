@@ -23,6 +23,6 @@
  */
 @org.springframework.modulith.ApplicationModule(
         displayName = "IDORIS Attributes",
-        allowedDependencies = {"core"}
+        allowedDependencies = {"core", "rules"}
 )
 package edu.kit.datamanager.idoris.attributes;

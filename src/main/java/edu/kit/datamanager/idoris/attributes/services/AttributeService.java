@@ -17,7 +17,7 @@
 package edu.kit.datamanager.idoris.attributes.services;
 
 import edu.kit.datamanager.idoris.attributes.dao.IAttributeDao;
-import edu.kit.datamanager.idoris.attributes.entities.Attribute;
+import edu.kit.datamanager.idoris.core.domain.Attribute;
 import edu.kit.datamanager.idoris.core.events.EventPublisherService;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
@@ -34,7 +34,7 @@ import java.util.Optional;
 
 /**
  * Service for managing Attribute entities.
- * This service provides methods for creating, updating, and retrieving Attribute entities.
+ * This logic provides methods for creating, updating, and retrieving Attribute entities.
  * It publishes domain events when entities are created, updated, or deleted.
  */
 @Service
@@ -48,7 +48,7 @@ public class AttributeService {
      * Creates a new AttributeService with the given dependencies.
      *
      * @param attributeDao   the Attribute repository
-     * @param eventPublisher the event publisher service
+     * @param eventPublisher the event publisher logic
      */
     public AttributeService(IAttributeDao attributeDao, EventPublisherService eventPublisher) {
         this.attributeDao = attributeDao;
@@ -209,8 +209,8 @@ public class AttributeService {
         if (attributePatch.getUpperBoundCardinality() != null) {
             existing.setUpperBoundCardinality(attributePatch.getUpperBoundCardinality());
         }
-        if (attributePatch.getDataType() != null) {
-            existing.setDataType(attributePatch.getDataType());
+        if (attributePatch.getDataTypeId() != null) {
+            existing.setDataTypeId(attributePatch.getDataTypeId());
         }
         if (attributePatch.getOverride() != null) {
             existing.setOverride(attributePatch.getOverride());

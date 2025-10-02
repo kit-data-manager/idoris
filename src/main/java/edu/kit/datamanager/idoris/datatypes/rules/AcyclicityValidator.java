@@ -16,9 +16,9 @@
 
 package edu.kit.datamanager.idoris.datatypes.rules;
 
-import edu.kit.datamanager.idoris.datatypes.entities.AtomicDataType;
-import edu.kit.datamanager.idoris.datatypes.entities.DataType;
-import edu.kit.datamanager.idoris.datatypes.entities.TypeProfile;
+import edu.kit.datamanager.idoris.core.domain.AtomicDataType;
+import edu.kit.datamanager.idoris.core.domain.DataType;
+import edu.kit.datamanager.idoris.core.domain.TypeProfile;
 import edu.kit.datamanager.idoris.rules.logic.Rule;
 import edu.kit.datamanager.idoris.rules.validation.SyntaxValidator;
 import edu.kit.datamanager.idoris.rules.validation.ValidationResult;
@@ -29,7 +29,6 @@ import io.micrometer.observation.annotation.Observed;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.stereotype.Component;
 
@@ -40,8 +39,8 @@ import java.util.Map;
 @Observed(contextualName = "acyclicityValidator")
 @Rule(
         appliesTo = {
-                edu.kit.datamanager.idoris.datatypes.entities.AtomicDataType.class,
-                edu.kit.datamanager.idoris.datatypes.entities.TypeProfile.class
+                AtomicDataType.class,
+                TypeProfile.class
         },
         name = "AcyclicityValidationRule",
         description = "Validates that entities do not form cycles in their inheritance structure",
@@ -49,16 +48,42 @@ import java.util.Map;
         dependsOn = {SyntaxValidator.class}
 )
 public class AcyclicityValidator extends ValidationVisitor {
-    @Autowired
-    private Neo4jClient neo4jClient;
+    private final Neo4jClient neo4jClient;
 
-    @Override
+    public AcyclicityValidator(Neo4jClient neo4jClient) {
+        this.neo4jClient = neo4jClient;
+    }
+
     @WithSpan(kind = SpanKind.INTERNAL)
     public ValidationResult visit(AtomicDataType atomicDataType, Object... args) {
         return doesNotInheritItself(atomicDataType);
     }
 
-    @Override
+    /**
+     * Validates that a DataType (TypeProfile or AtomicDataType) does not inherit from itself, preventing circular inheritance.
+     *
+     * @param dataType The DataType to validate
+     * @return ValidationResult containing any validation errors
+     */
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "rules.acyclicityValidator.doesNotInheritItself", description = "Time to check self-inheritance acyclicity", histogram = true)
+    @Counted(value = "rules.acyclicityValidator.doesNotInheritItself.count", description = "Number of self-inheritance acyclicity checks")
+    private ValidationResult doesNotInheritItself(DataType dataType) {
+        String query = "MATCH path = (n:DataType {id: $nodeID})-[:inheritsFrom*1..]->(n) RETURN path";
+
+        // Query the path from the Neo4j database
+        var path = neo4jClient.query(query)
+                .bind(dataType.getId()).to("nodeID")
+                .fetch()
+                .all();
+
+        if (!path.isEmpty()) {
+            return ValidationResult.error("Circular inheritance detected", Map.of("element", dataType, "path", path));
+        } else {
+            return ValidationResult.ok();
+        }
+    }
+
     @WithSpan(kind = SpanKind.INTERNAL)
     @Timed(value = "rules.acyclicityValidator.visitTypeProfile", description = "Time to check acyclicity for TypeProfile", histogram = true)
     @Counted(value = "rules.acyclicityValidator.visitTypeProfile.count", description = "Number of TypeProfile acyclicity validations")
@@ -126,30 +151,5 @@ public class AcyclicityValidator extends ValidationVisitor {
         }
 
         return ValidationResult.ok();
-    }
-
-    /**
-     * Validates that a DataType (TypeProfile or AtomicDataType) does not inherit from itself, preventing circular inheritance.
-     *
-     * @param dataType The DataType to validate
-     * @return ValidationResult containing any validation errors
-     */
-    @WithSpan(kind = SpanKind.INTERNAL)
-    @Timed(value = "rules.acyclicityValidator.doesNotInheritItself", description = "Time to check self-inheritance acyclicity", histogram = true)
-    @Counted(value = "rules.acyclicityValidator.doesNotInheritItself.count", description = "Number of self-inheritance acyclicity checks")
-    private ValidationResult doesNotInheritItself(DataType dataType) {
-        String query = "MATCH path = (n:DataType {id: $nodeID})-[:inheritsFrom*1..]->(n) RETURN path";
-
-        // Query the path from the Neo4j database
-        var path = neo4jClient.query(query)
-                .bind(dataType.getId()).to("nodeID")
-                .fetch()
-                .all();
-
-        if (!path.isEmpty()) {
-            return ValidationResult.error("Circular inheritance detected", Map.of("element", dataType, "path", path));
-        } else {
-            return ValidationResult.ok();
-        }
     }
 }

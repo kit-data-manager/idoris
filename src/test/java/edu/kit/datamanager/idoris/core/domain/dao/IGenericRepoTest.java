@@ -16,7 +16,8 @@
 
 package edu.kit.datamanager.idoris.core.domain.dao;
 
-import edu.kit.datamanager.idoris.core.domain.entities.AdministrativeMetadata;
+import edu.kit.datamanager.idoris.core.dao.IGenericRepo;
+import edu.kit.datamanager.idoris.core.domain.AdministrativeMetadata;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,10 +42,10 @@ class IGenericRepoTest {
     @BeforeEach
     void setUp() {
         // Set up the mock repository to return the entity when findByPid is called with "pid123"
-        when(repository.findByPid("pid123")).thenReturn(Optional.of(entity));
+        lenient().when(repository.findByPid("pid123")).thenReturn(Optional.of(entity));
 
         // Set up the mock repository to return the entity when findByInternalId is called with "internal456"
-        when(repository.findByInternalId("internal456")).thenReturn(Optional.of(entity));
+        lenient().when(repository.findByInternalId("internal456")).thenReturn(Optional.of(entity));
 
         // Set up the mock repository to delegate findById to the default implementation
         when(repository.findById(anyString())).thenCallRealMethod();

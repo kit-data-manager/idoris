@@ -15,7 +15,7 @@
  */
 package edu.kit.datamanager.idoris.pids.web.api;
 
-import edu.kit.datamanager.idoris.pids.entities.PersistentIdentifier;
+import edu.kit.datamanager.idoris.pids.domain.PIDNode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -47,10 +47,10 @@ public interface IPidApi {
             responses = {
                     @ApiResponse(responseCode = "200", description = "Persistent Identifiers found",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = PersistentIdentifier.class)))
+                                    schema = @Schema(implementation = PIDNode.class)))
             }
     )
-    ResponseEntity<CollectionModel<EntityModel<PersistentIdentifier>>> getAllPersistentIdentifiers();
+    ResponseEntity<CollectionModel<EntityModel<PIDNode>>> getAllPersistentIdentifiers();
 
     /**
      * Redirects to the appropriate entity based on the PID value.

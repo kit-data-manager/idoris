@@ -17,11 +17,21 @@
 package edu.kit.datamanager.idoris.pids.client.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import edu.kit.datamanager.idoris.core.domain.valueObjects.PID;
 
 /**
  * Represents a key-value pair in a SimplePidRecord.
  * This follows the PIDRecordEntry structure from the Typed PID Maker API.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record PIDRecordEntry(String key, String value) {
+public record PIDRecordEntry(PID key, String value) {
+
+    public PIDRecordEntry(String key, String value) {
+        this(new PID(key), value);
+    }
+
+    public PIDRecordEntry {
+        assert key != null;
+        assert value != null;
+    }
 }

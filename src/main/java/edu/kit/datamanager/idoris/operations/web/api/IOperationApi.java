@@ -16,7 +16,8 @@
 
 package edu.kit.datamanager.idoris.operations.web.api;
 
-import edu.kit.datamanager.idoris.operations.entities.Operation;
+import edu.kit.datamanager.idoris.operations.dto.OperationRequestDto;
+import edu.kit.datamanager.idoris.operations.dto.OperationResponseDto;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -29,108 +30,75 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * API interface for Operation endpoints.
- * This interface defines the REST API for managing Operation entities.
+ * API interface for Operation endpoints (DTO-first).
  */
 @Tag(name = "Operation", description = "API for managing Operations")
 public interface IOperationApi {
 
-    /**
-     * Gets all Operation entities.
-     *
-     * @return a collection of all Operation entities
-     */
     @GetMapping
     @io.swagger.v3.oas.annotations.Operation(
             summary = "Get all Operations",
-            description = "Returns a collection of all Operation entities",
+            description = "Returns a collection of all Operation DTOs",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Operations found",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = Operation.class)))
+                                    schema = @Schema(implementation = OperationResponseDto.class)))
             }
     )
-    ResponseEntity<CollectionModel<EntityModel<Operation>>> getAllOperations();
+    ResponseEntity<CollectionModel<EntityModel<OperationResponseDto>>> getAllOperations();
 
-    /**
-     * Gets an Operation entity by its PID or internal ID.
-     *
-     * @param id the PID or internal ID of the Operation to retrieve
-     * @return the Operation entity
-     */
     @GetMapping("/{id}")
     @io.swagger.v3.oas.annotations.Operation(
             summary = "Get an Operation by PID or internal ID",
-            description = "Returns an Operation entity by its PID or internal ID",
+            description = "Returns an Operation DTO by its PID or internal ID",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Operation found",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = Operation.class))),
+                                    schema = @Schema(implementation = OperationResponseDto.class))),
                     @ApiResponse(responseCode = "404", description = "Operation not found")
             }
     )
-    ResponseEntity<EntityModel<Operation>> getOperation(
+    ResponseEntity<EntityModel<OperationResponseDto>> getOperation(
             @Parameter(description = "PID or internal ID of the Operation", required = true)
             @PathVariable String id);
 
-    /**
-     * Creates a new Operation entity.
-     * The entity is validated before saving.
-     *
-     * @param operation the Operation entity to create
-     * @return the created Operation entity
-     */
     @PostMapping
     @io.swagger.v3.oas.annotations.Operation(
             summary = "Create a new Operation",
-            description = "Creates a new Operation entity after validating it",
+            description = "Creates a new Operation DTO after validating it",
             responses = {
                     @ApiResponse(responseCode = "201", description = "Operation created",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = Operation.class))),
+                                    schema = @Schema(implementation = OperationResponseDto.class))),
                     @ApiResponse(responseCode = "400", description = "Invalid input or validation failed")
             }
     )
-    ResponseEntity<EntityModel<Operation>> createOperation(
+    ResponseEntity<EntityModel<OperationResponseDto>> createOperation(
             @Parameter(description = "Operation to create", required = true)
-            @Valid @RequestBody Operation operation);
+            @Valid @RequestBody OperationRequestDto operation);
 
-    /**
-     * Updates an existing Operation entity.
-     * The entity is validated before saving.
-     *
-     * @param id        the PID or internal ID of the Operation to update
-     * @param operation the updated Operation entity
-     * @return the updated Operation entity
-     */
     @PutMapping("/{id}")
     @io.swagger.v3.oas.annotations.Operation(
             summary = "Update an Operation",
-            description = "Updates an existing Operation entity after validating it",
+            description = "Updates an existing Operation DTO after validating it",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Operation updated",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = Operation.class))),
+                                    schema = @Schema(implementation = OperationResponseDto.class))),
                     @ApiResponse(responseCode = "400", description = "Invalid input or validation failed"),
                     @ApiResponse(responseCode = "404", description = "Operation not found")
             }
     )
-    ResponseEntity<EntityModel<Operation>> updateOperation(
+    ResponseEntity<EntityModel<OperationResponseDto>> updateOperation(
             @Parameter(description = "PID or internal ID of the Operation", required = true)
             @PathVariable String id,
             @Parameter(description = "Updated Operation", required = true)
-            @Valid @RequestBody Operation operation);
+            @Valid @RequestBody OperationRequestDto operation);
 
-    /**
-     * Deletes an Operation entity.
-     *
-     * @param id the PID or internal ID of the Operation to delete
-     * @return no content
-     */
     @DeleteMapping("/{id}")
     @io.swagger.v3.oas.annotations.Operation(
             summary = "Delete an Operation",
-            description = "Deletes an Operation entity",
+            description = "Deletes an Operation DTO",
             responses = {
                     @ApiResponse(responseCode = "204", description = "Operation deleted"),
                     @ApiResponse(responseCode = "404", description = "Operation not found")
@@ -140,16 +108,10 @@ public interface IOperationApi {
             @Parameter(description = "PID or internal ID of the Operation", required = true)
             @PathVariable String id);
 
-    /**
-     * Validates an Operation entity.
-     *
-     * @param id the PID or internal ID of the Operation to validate
-     * @return the validation result
-     */
     @GetMapping("/{id}/validate")
     @io.swagger.v3.oas.annotations.Operation(
             summary = "Validate an Operation",
-            description = "Validates an Operation entity and returns the validation result",
+            description = "Validates an Operation and returns the validation result",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Operation is valid"),
                     @ApiResponse(responseCode = "218", description = "Operation is invalid"),
@@ -160,12 +122,6 @@ public interface IOperationApi {
             @Parameter(description = "PID or internal ID of the Operation", required = true)
             @PathVariable String id);
 
-    /**
-     * Gets operations for a data type.
-     *
-     * @param id the PID or internal ID of the data type
-     * @return a collection of operations for the data type
-     */
     @GetMapping("/search/getOperationsForDataType")
     @io.swagger.v3.oas.annotations.Operation(
             summary = "Get operations for a data type",
@@ -173,35 +129,28 @@ public interface IOperationApi {
             responses = {
                     @ApiResponse(responseCode = "200", description = "Operations found",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = Operation.class)))
+                                    schema = @Schema(implementation = OperationResponseDto.class)))
             }
     )
-    ResponseEntity<CollectionModel<EntityModel<Operation>>> getOperationsForDataType(
+    ResponseEntity<CollectionModel<EntityModel<OperationResponseDto>>> getOperationsForDataType(
             @Parameter(description = "PID or internal ID of the data type", required = true)
             @RequestParam String id);
 
-    /**
-     * Partially updates an Operation entity.
-     *
-     * @param id             the PID or internal ID of the Operation to patch
-     * @param operationPatch the partial Operation entity with fields to update
-     * @return the patched Operation entity
-     */
     @PatchMapping("/{id}")
     @io.swagger.v3.oas.annotations.Operation(
             summary = "Partially update an Operation",
-            description = "Updates specific fields of an existing Operation entity",
+            description = "Updates specific fields of an existing Operation DTO",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Operation patched",
                             content = @Content(mediaType = "application/hal+json",
-                                    schema = @Schema(implementation = Operation.class))),
+                                    schema = @Schema(implementation = OperationResponseDto.class))),
                     @ApiResponse(responseCode = "400", description = "Invalid input"),
                     @ApiResponse(responseCode = "404", description = "Operation not found")
             }
     )
-    ResponseEntity<EntityModel<Operation>> patchOperation(
+    ResponseEntity<EntityModel<OperationResponseDto>> patchOperation(
             @Parameter(description = "PID or internal ID of the Operation", required = true)
             @PathVariable String id,
             @Parameter(description = "Partial Operation with fields to update", required = true)
-            @RequestBody Operation operationPatch);
+            @RequestBody OperationRequestDto operationPatch);
 }

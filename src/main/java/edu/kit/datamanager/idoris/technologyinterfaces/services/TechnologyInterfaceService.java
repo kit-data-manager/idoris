@@ -16,9 +16,14 @@
 
 package edu.kit.datamanager.idoris.technologyinterfaces.services;
 
+import edu.kit.datamanager.idoris.attributes.api.IAttributeInternalService;
+import edu.kit.datamanager.idoris.core.domain.TechnologyInterface;
 import edu.kit.datamanager.idoris.core.events.EventPublisherService;
+import edu.kit.datamanager.idoris.technologyinterfaces.api.ITechnologyInterfaceExternalService;
+import edu.kit.datamanager.idoris.technologyinterfaces.api.ITechnologyInterfaceInternalService;
 import edu.kit.datamanager.idoris.technologyinterfaces.dao.ITechnologyInterfaceDao;
-import edu.kit.datamanager.idoris.technologyinterfaces.entities.TechnologyInterface;
+import edu.kit.datamanager.idoris.technologyinterfaces.dto.TechnologyInterfaceDto;
+import edu.kit.datamanager.idoris.technologyinterfaces.mappers.TechnologyInterfaceMapper;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
@@ -31,28 +36,34 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Service for managing TechnologyInterface entities.
- * This service provides methods for creating, updating, and retrieving TechnologyInterface entities.
+ * This logic provides methods for creating, updating, and retrieving TechnologyInterface entities.
  * It publishes domain events when entities are created, updated, or deleted.
  */
 @Service
 @Slf4j
 @Observed(contextualName = "technologyInterfaceService")
-public class TechnologyInterfaceService {
+class TechnologyInterfaceService implements ITechnologyInterfaceExternalService, ITechnologyInterfaceInternalService {
     private final ITechnologyInterfaceDao technologyInterfaceDao;
     private final EventPublisherService eventPublisher;
+    private final TechnologyInterfaceMapper mapper;
+    private final IAttributeInternalService attributeInternalService;
 
     /**
      * Creates a new TechnologyInterfaceService with the given dependencies.
      *
      * @param technologyInterfaceDao the TechnologyInterface repository
-     * @param eventPublisher         the event publisher service
+     * @param eventPublisher         the event publisher logic
+     * @param mapper                 the mapper for DTO/entity conversion
      */
-    public TechnologyInterfaceService(ITechnologyInterfaceDao technologyInterfaceDao, EventPublisherService eventPublisher) {
+    public TechnologyInterfaceService(ITechnologyInterfaceDao technologyInterfaceDao, EventPublisherService eventPublisher, TechnologyInterfaceMapper mapper, IAttributeInternalService attributeInternalService) {
         this.technologyInterfaceDao = technologyInterfaceDao;
         this.eventPublisher = eventPublisher;
+        this.mapper = mapper;
+        this.attributeInternalService = attributeInternalService;
     }
 
     /**
@@ -203,5 +214,156 @@ public class TechnologyInterfaceService {
 
         log.info("Patched TechnologyInterface with PID: {}", saved.getId());
         return saved;
+    }
+
+    @Override
+    @Transactional
+    public TechnologyInterfaceDto create(TechnologyInterfaceDto dto) {
+        TechnologyInterface entity = mapper.toEntity(dto);
+        TechnologyInterface saved = technologyInterfaceDao.save(entity);
+        // Validate and handle relationships if provided
+        ensureAttributesExist(dto.getAttributeIds());
+        ensureAttributesExist(dto.getOutputIds());
+        if (dto.getAttributeIds() != null && !dto.getAttributeIds().isEmpty()) {
+            technologyInterfaceDao.linkInputs(saved.getId(), dto.getAttributeIds());
+        }
+        if (dto.getOutputIds() != null && !dto.getOutputIds().isEmpty()) {
+            technologyInterfaceDao.linkOutputs(saved.getId(), dto.getOutputIds());
+        }
+        // Reload to include relationships
+        TechnologyInterface reloaded = technologyInterfaceDao.findById(saved.getId()).orElse(saved);
+        // Publish module-scoped created event after successful composite linking
+        eventPublisher.publishEvent(new edu.kit.datamanager.idoris.technologyinterfaces.events.TechnologyInterfaceCreatedEvent(reloaded.getId(), mapper.toDto(reloaded)));
+        return mapper.toDto(reloaded);
+    }
+
+    // ===================== DTO-first External API =====================
+
+    private void ensureAttributesExist(Set<String> attributeIds) {
+        if (attributeIds == null || attributeIds.isEmpty()) return;
+        for (String attrId : attributeIds) {
+            attributeInternalService.ensureExists(attrId);
+        }
+    }
+
+    @Override
+    @Transactional
+    public TechnologyInterfaceDto update(String id, TechnologyInterfaceDto dto) {
+        TechnologyInterface existing = technologyInterfaceDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("TechnologyInterface not found with ID: " + id));
+        Long previousVersion = existing.getVersion();
+        // For minimal impact, update scalar fields only; relations managed by dedicated ops
+        mapper.applyPatch(dto, existing);
+        TechnologyInterface saved = technologyInterfaceDao.save(existing);
+        // Publish module-scoped updated event
+        eventPublisher.publishEvent(new edu.kit.datamanager.idoris.technologyinterfaces.events.TechnologyInterfaceUpdatedEvent(saved.getId(), previousVersion, mapper.toDto(saved)));
+        return mapper.toDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public TechnologyInterfaceDto patch(String id, TechnologyInterfaceDto dto) {
+        TechnologyInterface existing = technologyInterfaceDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("TechnologyInterface not found with ID: " + id));
+        Long previousVersion = existing.getVersion();
+        mapper.applyPatch(dto, existing);
+        TechnologyInterface saved = technologyInterfaceDao.save(existing);
+        // Publish module-scoped patched event
+        eventPublisher.publishEvent(new edu.kit.datamanager.idoris.technologyinterfaces.events.TechnologyInterfacePatchedEvent(saved.getId(), previousVersion, mapper.toDto(saved)));
+        return mapper.toDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public void delete(String id) {
+        // Publish module-scoped deleted event before deletion to include full payload
+        TechnologyInterface existing = technologyInterfaceDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("TechnologyInterface not found with ID: " + id));
+        eventPublisher.publishEvent(new edu.kit.datamanager.idoris.technologyinterfaces.events.TechnologyInterfaceDeletedEvent(existing.getId(), mapper.toDto(existing)));
+        technologyInterfaceDao.delete(existing);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<TechnologyInterfaceDto> get(String id) {
+        return technologyInterfaceDao.findById(id).map(mapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TechnologyInterfaceDto> list() {
+        return technologyInterfaceDao.findAll().stream().map(mapper::toDto).collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public TechnologyInterfaceDto linkInputs(String technologyInterfaceId, Set<String> attributeIds) {
+        if (attributeIds == null || attributeIds.isEmpty()) return get(technologyInterfaceId).orElseThrow();
+        ensureAttributesExist(attributeIds);
+        technologyInterfaceDao.linkInputs(technologyInterfaceId, attributeIds);
+        return get(technologyInterfaceId).orElseThrow();
+    }
+
+    @Override
+    @Transactional
+    public TechnologyInterfaceDto unlinkInputs(String technologyInterfaceId, Set<String> attributeIds) {
+        if (attributeIds == null || attributeIds.isEmpty()) return get(technologyInterfaceId).orElseThrow();
+        technologyInterfaceDao.unlinkInputs(technologyInterfaceId, attributeIds);
+        return get(technologyInterfaceId).orElseThrow();
+    }
+
+    @Override
+    @Transactional
+    public TechnologyInterfaceDto linkOutputs(String technologyInterfaceId, Set<String> attributeIds) {
+        if (attributeIds == null || attributeIds.isEmpty()) return get(technologyInterfaceId).orElseThrow();
+        ensureAttributesExist(attributeIds);
+        technologyInterfaceDao.linkOutputs(technologyInterfaceId, attributeIds);
+        return get(technologyInterfaceId).orElseThrow();
+    }
+
+    @Override
+    @Transactional
+    public TechnologyInterfaceDto unlinkOutputs(String technologyInterfaceId, Set<String> attributeIds) {
+        if (attributeIds == null || attributeIds.isEmpty()) return get(technologyInterfaceId).orElseThrow();
+        technologyInterfaceDao.unlinkOutputs(technologyInterfaceId, attributeIds);
+        return get(technologyInterfaceId).orElseThrow();
+    }
+
+    // ===================== Internal API =====================
+
+    @Override
+    @Transactional(readOnly = true)
+    public void ensureExists(String id) {
+        if (technologyInterfaceDao.findById(id).isEmpty()) {
+            throw new IllegalArgumentException("TechnologyInterface not found with ID: " + id);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void linkInputsInternal(String technologyInterfaceId, Set<String> attributeIds) {
+        if (attributeIds == null || attributeIds.isEmpty()) return;
+        technologyInterfaceDao.linkInputs(technologyInterfaceId, attributeIds);
+    }
+
+    @Override
+    @Transactional
+    public void unlinkInputsInternal(String technologyInterfaceId, Set<String> attributeIds) {
+        if (attributeIds == null || attributeIds.isEmpty()) return;
+        technologyInterfaceDao.unlinkInputs(technologyInterfaceId, attributeIds);
+    }
+
+    @Override
+    @Transactional
+    public void linkOutputsInternal(String technologyInterfaceId, Set<String> attributeIds) {
+        if (attributeIds == null || attributeIds.isEmpty()) return;
+        technologyInterfaceDao.linkOutputs(technologyInterfaceId, attributeIds);
+    }
+
+    @Override
+    @Transactional
+    public void unlinkOutputsInternal(String technologyInterfaceId, Set<String> attributeIds) {
+        if (attributeIds == null || attributeIds.isEmpty()) return;
+        technologyInterfaceDao.unlinkOutputs(technologyInterfaceId, attributeIds);
     }
 }
