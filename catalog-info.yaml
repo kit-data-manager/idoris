@@ -19,7 +19,7 @@ metadata:
 spec:
   lifecycle: experimental
   owner: user:maximiliani
-  type: service
+  type: logic
   domain: fairdo
 
 ---
@@ -80,7 +80,7 @@ metadata:
     backstage.io/techdocs-ref: dir:.
     backstage.io/managed-by-origin-location: url:http://github.com/maximiliani/idoris/blob/master/catalog-info.yaml
 spec:
-  type: service
+  type: logic
   lifecycle: experimental
   owner: user:maximiliani
   system: idoris

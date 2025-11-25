@@ -235,7 +235,7 @@ Temporary Items
 ### Gradle ###
 .gradle
 **/build/
-!src/**/build/
+!idoris/**/build/
 
 # Ignore Gradle GUI configuration
 gradle-app.setting
@@ -260,4 +260,4 @@ gradle-app.setting
 *.hprof
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij+all,macos,java,gradle,webstorm+all,git!/.idea/!/db/
-!/observability/alloy_data/
+*/build

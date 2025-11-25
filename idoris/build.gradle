@@ -1,0 +1,236 @@
+/*
+ * Copyright (c) 2025 Karlsruhe Institute of Technology
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import java.text.SimpleDateFormat
+
+plugins {
+    id "java"
+    id "org.springframework.boot" version "4.0.0"
+    id "io.spring.dependency-management" version "1.1.7"
+    id "io.freefair.lombok" version "9.1.0"
+    id "io.freefair.maven-publish-java" version "9.1.0"
+    id "org.owasp.dependencycheck" version "12.1.9"
+    id "org.asciidoctor.jvm.convert" version "4.0.5"
+    id "net.ltgt.errorprone" version "4.3.0"
+    id "net.researchgate.release" version "3.1.0"
+    id "com.gorylenko.gradle-git-properties" version "2.5.4"
+    id "jacoco"
+    id "com.github.ben-manes.versions" version "0.53.0"
+}
+
+description = 'IDORIS - An Integrated Data Type and Operations Registry with Inheritance System'
+group = 'edu.kit.datamanager'
+version = '0.0.2-SNAPSHOT'
+
+// Update source/target compatibility syntax
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+ext {
+    springDocVersion = "3.0.0"
+    errorproneVersion = "2.44.0"
+    javersVersion = "7.3.7"
+    openTelemetryInstrumentationVersion = "2.22.0"
+    set("snippetsDir", file("build/generated-snippets"))
+    set("springModulithVersion", "2.0.0")
+    gitProperties.dotGitDirectory = file("../.git")
+}
+
+dependencies {
+    /**
+     * Service base from KIT-Data Manager
+     */
+//    implementation("edu.kit.datamanager:service-base:1.3.6")
+//    implementation("edu.kit.datamanager:repo-core:1.2.6")
+
+    /* Rules API */
+    implementation project(":rules-api")
+    annotationProcessor project(":rules-processor")
+
+    /* Spring Boot starters (version comes from the BOM) */
+//    implementation "org.springframework:spring-core"
+    implementation 'org.springframework.boot:spring-boot-starter-restclient'
+    implementation "org.springframework.boot:spring-boot-starter-webmvc"
+    implementation 'org.springframework.boot:spring-boot-starter-aspectj'
+    implementation 'org.springframework.boot:spring-boot-starter-amqp'
+//    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    implementation "org.springframework.boot:spring-boot-starter-data-neo4j"
+//    implementation "org.springframework.boot:spring-boot-starter-data-elasticsearch"
+    implementation "org.springframework.boot:spring-boot-starter-hateoas"
+    implementation "org.springframework.boot:spring-boot-starter-validation"
+    implementation "org.springframework.boot:spring-boot-starter-security"
+    implementation "org.springframework.modulith:spring-modulith-starter-core"
+    implementation "org.springframework.modulith:spring-modulith-starter-neo4j"
+    implementation "org.springframework.modulith:spring-modulith-events-api"
+    implementation "org.springframework.modulith:spring-modulith-starter-insight"
+    runtimeOnly "org.springframework.modulith:spring-modulith-runtime"
+    runtimeOnly "org.springframework.modulith:spring-modulith-observability"
+    runtimeOnly "org.springframework.modulith:spring-modulith-actuator"
+
+
+    /* OpenAPI */
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springDocVersion}"
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-api:${springDocVersion}"
+    implementation "org.springdoc:springdoc-openapi-starter-common:${springDocVersion}"
+
+    /* HTTP client */
+//    implementation "org.apache.httpcomponents.client5:httpclient5:${httpClientVersion}"
+
+    /* Observability */
+    implementation(platform("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:${openTelemetryInstrumentationVersion}"))
+    implementation 'org.springframework.boot:spring-boot-micrometer-tracing'
+    implementation 'org.springframework.boot:spring-boot-starter-micrometer-metrics'
+    implementation 'org.springframework.boot:spring-boot-starter-opentelemetry'
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
+    implementation "io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter"
+    implementation "io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations"
+//    implementation "io.opentelemetry.contrib:opentelemetry-sampler"
+    implementation "io.micrometer:micrometer-tracing-bridge-otel"
+    implementation "io.opentelemetry:opentelemetry-exporter-otlp"
+
+    /* Development helpers */
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+    developmentOnly "org.springframework.boot:spring-boot-devtools"
+//    developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
+
+    /* Lombok */
+    compileOnly "org.projectlombok:lombok"
+    annotationProcessor "org.projectlombok:lombok"
+
+    /* Jakarta Annotations */
+    implementation "jakarta.annotation:jakarta.annotation-api"
+
+    /* Error-prone */
+    errorprone "com.google.errorprone:error_prone_core:${errorproneVersion}"
+    annotationProcessor "com.google.errorprone:error_prone_core:${errorproneVersion}"
+
+    /* Tests */
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation "org.springframework.restdocs:spring-restdocs-mockmvc"
+    testImplementation "org.springframework.security:spring-security-test"
+    testImplementation "org.springframework.modulith:spring-modulith-starter-test"
+    testImplementation 'org.springframework.boot:spring-boot-micrometer-tracing-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
+//    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-neo4j-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-hateoas-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-opentelemetry-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-restclient-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-amqp-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-aspectj-test'
+    testImplementation "org.junit.jupiter:junit-jupiter"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.modulith:spring-modulith-bom:${springModulithVersion}"
+        mavenBom "io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:${openTelemetryInstrumentationVersion}"
+    }
+}
+
+// Modify JavaCompile tasks configuration
+tasks.withType(JavaCompile).configureEach {
+    if (name.toLowerCase().contains('test')) {
+        options.errorprone.enabled = false
+    }
+
+    options.compilerArgs += [
+            '-Xlint:unchecked',
+            '-Xlint:deprecation',
+            '-Xmaxwarns', '200'
+    ]
+
+    // Enable annotation processing explicitly
+    options.fork = true
+
+    options.errorprone {
+        disableWarningsInGeneratedCode = true
+    }
+}
+
+// Update test configuration
+tasks.named('test') {
+    outputs.dir snippetsDir
+    useJUnitPlatform()
+    finalizedBy tasks.named('jacocoTestReport')
+
+    jvmArgs = ['-Xmx4g']  // Replace maxHeapSize
+
+    environment('spring.config.location', 'optional:classpath:/test-config/')
+
+    testLogging {
+        events = ['started', 'passed', 'skipped', 'failed']
+        showStandardStreams = true
+        outputs.upToDateWhen { false }
+    }
+}
+
+tasks.named('asciidoctor') {
+    inputs.dir snippetsDir
+    dependsOn test
+
+    attributes = [
+            'snippets': snippetsDir,
+            'version' : jar.archiveVersion,
+            'date'    : new SimpleDateFormat("yyyy-MM-dd").format(new Date())
+    ]
+
+    sourceDir file("docs/")
+    outputDir = file("build/generated-docs")
+
+    options doctype: 'book'
+
+    forkOptions {
+        jvmArgs = [
+                "--add-opens", "java.base/sun.nio.ch=ALL-UNNAMED",
+                "--add-opens", "java.base/java.io=ALL-UNNAMED"
+        ]
+    }
+}
+
+// Update jar configuration
+tasks.named('jar') {
+    enabled = false
+}
+
+// Update bootJar configuration
+bootJar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes('Main-Class': 'org.springframework.boot.loader.launch.PropertiesLauncher')
+    }
+    dependsOn asciidoctor
+    from("${asciidoctor.outputDir}") {
+        into 'static/docs'
+    }
+//    launchScript()
+}

@@ -20,7 +20,7 @@ plugins {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
@@ -40,8 +40,8 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.38'
 
     // Add Spring annotations as optional (for @Nullable and @Component)
-    compileOnly 'org.springframework:spring-core:6.2.7'
-    compileOnly 'org.springframework:spring-context:6.2.7'
+    compileOnly 'org.springframework:spring-core:7.0.0'
+    compileOnly 'org.springframework:spring-context:7.0.0'
 
     // Add SLF4J API for logging
     compileOnly 'org.slf4j:slf4j-api:2.0.9'
