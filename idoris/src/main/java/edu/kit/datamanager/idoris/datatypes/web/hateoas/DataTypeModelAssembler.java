@@ -22,7 +22,7 @@ import edu.kit.datamanager.idoris.datatypes.web.v1.DataTypeController;
 import edu.kit.datamanager.idoris.datatypes.web.v1.TypeProfileController;
 import edu.kit.datamanager.idoris.pids.api.IInternalPIDService;
 import io.micrometer.observation.annotation.Observed;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.jspecify.annotations.NonNull;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
@@ -40,12 +40,14 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @Observed(contextualName = "dataTypeDtoModelAssembler")
 public class DataTypeModelAssembler implements RepresentationModelAssembler<DataTypeDto, EntityModel<DataTypeDto>> {
 
-    @Autowired(required = false)
-    private IInternalPIDService pidService;
+    private final IInternalPIDService internalPIDService;
 
+    public DataTypeModelAssembler(IInternalPIDService internalPIDService) {
+        this.internalPIDService = internalPIDService;
+    }
 
     @Override
-    public EntityModel<DataTypeDto> toModel(DataTypeDto dto) {
+    public EntityModel<DataTypeDto> toModel(@NonNull DataTypeDto dto) {
         EntityModel<DataTypeDto> model = EntityModel.of(dto);
 
         // Add self link to the unified DataType controller
@@ -55,11 +57,6 @@ public class DataTypeModelAssembler implements RepresentationModelAssembler<Data
 
         // Add collection link
         model.add(linkTo(methodOn(DataTypeController.class).list()).withRel("collection"));
-
-        // Add PID link if resolvable
-        if (dto.getInternalId() != null && pidService != null) {
-            pidService.getPIDLinkForInternalID(dto.getInternalId()).forEach(model::add);
-        }
 
         // Add type-specific links
         if (dto instanceof AtomicDataTypeDto && dto.getInternalId() != null) {
@@ -80,6 +77,7 @@ public class DataTypeModelAssembler implements RepresentationModelAssembler<Data
 
         // Add common links
         if (dto.getInternalId() != null) {
+            model.add(internalPIDService.getPIDLinkForInternalID(dto.getInternalId()));
             model.add(linkTo(methodOn(DataTypeController.class).getInheritanceHierarchy(dto.getInternalId())).withRel("inheritanceHierarchy"));
             model.add(linkTo(methodOn(DataTypeController.class).getOperations(dto.getInternalId())).withRel("operations"));
         }

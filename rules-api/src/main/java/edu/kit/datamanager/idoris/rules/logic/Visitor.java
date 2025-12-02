@@ -19,8 +19,9 @@ package edu.kit.datamanager.idoris.rules.logic;
 import io.micrometer.observation.annotation.Observed;
 import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -46,6 +47,7 @@ import java.util.function.Supplier;
 @Slf4j
 @Observed
 public abstract class Visitor<T extends RuleOutput<T>> {
+    protected final Rule rule = this.getClass().getAnnotation(Rule.class);
     /**
      * Set to track visited element IDs to detect cycles in the visitation graph
      */
@@ -58,16 +60,6 @@ public abstract class Visitor<T extends RuleOutput<T>> {
      * Factory for creating new output instances
      */
     private final Supplier<T> outputFactory;
-
-    /**
-     * Service for executing rules on elements
-     * This can be useful to validate other elements during visitation.
-     * It is automatically injected by Spring.
-     *
-     * @see IRuleService
-     */
-    @Autowired
-    protected IRuleService ruleService;
 
     /**
      * Creates a new visitor with the specified output factory.
@@ -87,7 +79,22 @@ public abstract class Visitor<T extends RuleOutput<T>> {
      * @return processing result of type T
      */
     public T visit(VisitableElement element, Object... args) {
-        return notAllowed(element);
+        try {
+            // Attempt to find a specific 'visit' method in the runtime class (e.g., AcyclicityValidator)
+            // that matches the specific type of the element (e.g., AtomicDataType).
+            // We look for: public T visit(SpecificType element, Object[] args)
+            Method method = this.getClass().getMethod("visit", element.getClass(), Object[].class);
+
+            // Invoke the found specific method on this instance
+            //noinspection unchecked
+            return (T) method.invoke(this, element, args);
+        } catch (NoSuchMethodException e) {
+            // No specific visit method found for this exact type, fallback to default behavior
+            return notAllowed(element);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            log.error("Failed to invoke visit method for type {}", element.getClass().getName(), e);
+            throw new RuntimeException("Visitor dynamic dispatch failed", e);
+        }
     }
 
     /**
@@ -141,7 +148,7 @@ public abstract class Visitor<T extends RuleOutput<T>> {
      * @return a new output instance with an error message about the cycle
      */
     protected T handleCircle(String id) {
-        return outputFactory.get().addMessage("Cycle detected", OutputMessage.MessageSeverity.ERROR, id);
+        return outputFactory.get().addMessage("Cycle detected", OutputMessage.MessageSeverity.ERROR, rule, id);
     }
 
     /**

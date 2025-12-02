@@ -70,14 +70,14 @@ public class InheritanceValidator extends ValidationVisitor {
 
             if (attribute.getLowerBoundCardinality() < override.getLowerBoundCardinality())
                 result.addMessage("The lower bound cardinality of an attribute MUST be more or equally restrictive than the lower bound cardinality of the attribute that was overwritten. Overriding a more restrictive attribute as a less restrictive attribute is NOT possible.",
-                        attribute, ERROR);
+                        attribute, rule, ERROR);
 
             if (attribute.getUpperBoundCardinality() == null && override.getUpperBoundCardinality() != null) {
                 result.addMessage("The upper bound cardinality of an attribute MUST be defined if the attribute that was overwritten has an upper bound cardinality defined.",
-                        attribute, ERROR);
+                        attribute, rule, ERROR);
             } else if (override.getUpperBoundCardinality() != null && attribute.getUpperBoundCardinality() > override.getUpperBoundCardinality())
                 result.addMessage("The upper bound cardinality of an attribute MUST be more or equally restrictive than the upper bound cardinality of the attribute that was overwritten. Overriding a less restrictive attribute as a more restrictive attribute is NOT possible.",
-                        attribute, ERROR);
+                        attribute, rule, ERROR);
         }
 
         return result;
@@ -99,31 +99,31 @@ public class InheritanceValidator extends ValidationVisitor {
         AtomicDataType parent = atomicDataType.getInheritsFrom();
         if (parent != null) {
             if (!atomicDataType.getPrimitiveDataType().equals(parent.getPrimitiveDataType()))
-                result.addMessage("Primitive data type does not match parent", atomicDataType, ERROR);
+                result.addMessage("Primitive data type does not match parent", atomicDataType, rule, ERROR);
 
             // Compare permitted values with parent
             if (parent.getPermittedValues() != null && parent.getPermittedValues().size() > 0) {
                 if (atomicDataType.getPermittedValues() == null || atomicDataType.getPermittedValues().isEmpty())
                     result.addMessage("Permitted values are not defined for atomic data type, but should contain at least those defined by the parent",
-                            atomicDataType, ERROR);
+                            atomicDataType, rule, ERROR);
                 else if (!atomicDataType.getPermittedValues().containsAll(parent.getPermittedValues()))
-                    result.addMessage("Permitted values do not match parent", atomicDataType, ERROR);
+                    result.addMessage("Permitted values do not match parent", atomicDataType, rule, ERROR);
             }
 
             // Compare forbidden values with parent
             if (parent.getForbiddenValues() != null && parent.getForbiddenValues().size() > 0) {
                 if (atomicDataType.getForbiddenValues() == null || atomicDataType.getForbiddenValues().isEmpty())
                     result.addMessage("Forbidden values are not defined for atomic data type, but should contain at least those defined by the parent",
-                            atomicDataType, ERROR);
+                            atomicDataType, rule, ERROR);
                 else if (!atomicDataType.getForbiddenValues().containsAll(parent.getForbiddenValues()))
-                    result.addMessage("Forbidden values do not match parent", atomicDataType, ERROR);
+                    result.addMessage("Forbidden values do not match parent", atomicDataType, rule, ERROR);
             }
 
             // Detect conflicts between permitted and forbidden values in atomic data type and parent
             if (atomicDataType.getPermittedValues() != null && atomicDataType.getForbiddenValues() != null &&
                     !atomicDataType.getPermittedValues().isEmpty() && !atomicDataType.getForbiddenValues().isEmpty() &&
                     atomicDataType.getPermittedValues().stream().anyMatch(atomicDataType.getForbiddenValues()::contains)) {
-                result.addMessage("Atomic data type has conflicting permitted and forbidden values", atomicDataType, ERROR);
+                result.addMessage("Atomic data type has conflicting permitted and forbidden values", atomicDataType, rule, ERROR);
             }
         }
 
@@ -147,7 +147,7 @@ public class InheritanceValidator extends ValidationVisitor {
             for (TypeProfile parent : typeProfile.getInheritsFrom()) {
                 if (parent.isAbstract() && !typeProfile.isAbstract()) {
                     result.addMessage("TypeProfile " + typeProfile.getId() + " is not abstract, but inherits from the TypeProfile " +
-                            parent.getId() + " that is abstract.", typeProfile, ERROR);
+                            parent.getId() + " that is abstract.", typeProfile, rule, ERROR);
                 }
             }
         }

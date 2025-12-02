@@ -18,8 +18,11 @@ package edu.kit.datamanager.idoris.datatypes.mappers;
 import edu.kit.datamanager.idoris.core.domain.Attribute;
 import edu.kit.datamanager.idoris.core.domain.TypeProfile;
 import edu.kit.datamanager.idoris.core.domain.valueObjects.Name;
+import edu.kit.datamanager.idoris.core.domain.valueObjects.PID;
 import edu.kit.datamanager.idoris.datatypes.dto.TypeProfileDto;
+import edu.kit.datamanager.idoris.pids.api.IInternalPIDService;
 import io.micrometer.observation.annotation.Observed;
+import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 import java.util.Objects;
@@ -33,8 +36,13 @@ import java.util.stream.Collectors;
  * - Apply partial updates (patch semantics) for scalar fields
  */
 @Observed(contextualName = "typeProfileMapper")
-@org.springframework.stereotype.Component
+@Component
 public class TypeProfileMapper {
+    private final IInternalPIDService internalPIDService;
+
+    public TypeProfileMapper(IInternalPIDService internalPIDService) {
+        this.internalPIDService = internalPIDService;
+    }
 
     public TypeProfileDto toDto(TypeProfile entity) {
         if (entity == null) return null;
@@ -51,6 +59,7 @@ public class TypeProfileMapper {
                 .isAbstract(entity.isAbstract())
                 .allowAdditionalAttributes(entity.isAllowAdditionalAttributes())
                 .validationPolicy(entity.getValidationPolicy())
+                .pids(internalPIDService.getPIDAssociatedWithInternalID(entity.getId()).stream().map(PID::toString).toList())
                 .build();
     }
 

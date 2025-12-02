@@ -23,20 +23,20 @@ import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ListableBeanFactory;
-import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
-@Component
-@RequiredArgsConstructor
+@Service
 @Slf4j
 @Observed(contextualName = "ruleService")
 public class RuleService implements IRuleService {
@@ -47,7 +47,11 @@ public class RuleService implements IRuleService {
      * Used to selectively load only the rule implementations that are actually referenced
      * in the precomputed dependency graph, avoiding the instantiation of unused rules.
      */
-    private final ListableBeanFactory beanFactory;
+//    private final ListableBeanFactory beanFactory;
+//
+//    private final ApplicationContext context;
+
+    private final ObjectProvider<List<IRule<?, ?>>> allRules;
     /**
      * Thread-safe registry mapping fully qualified class names to rule instances.
      * <p>
@@ -67,6 +71,10 @@ public class RuleService implements IRuleService {
      * authoritative source for rule execution order.
      */
     private PrecomputedRuleGraph precomputedGraph;
+
+    public RuleService(ObjectProvider<List<IRule<?, ?>>> allRules) {
+        this.allRules = allRules;
+    }
 
     /**
      * Initializes the rule engine by loading the precomputed dependency graph and
@@ -177,19 +185,19 @@ public class RuleService implements IRuleService {
         log.debug("Precomputed graph references {} unique rule classes", requiredRuleClasses.size());
 
         // Find and register only the required rule beans
-        beanFactory.getBeansOfType(IRule.class)
-                .forEach((beanName, ruleBean) -> {
-                    String className = ruleBean.getClass().getName();
-
-                    // Only register if this rule is referenced in the precomputed graph
-                    if (requiredRuleClasses.containsKey(className)) {
-                        ruleRegistry.put(className, ruleBean);
-                        requiredRuleClasses.put(className, true); // mark as found
-                        log.debug("Registered required rule: {}", className);
-                    } else {
-                        log.debug("Skipping unreferenced rule: {}", className);
-                    }
-                });
+        Objects.requireNonNull(allRules.getIfAvailable()).forEach(rule -> {
+            String className = rule.getClass().getName()
+                    .replaceAll(Matcher.quoteReplacement("$$.*") + "$", "")
+                    .replaceAll("@.+$", "");
+            // Only register if this rule is referenced in the precomputed graph
+            if (requiredRuleClasses.containsKey(className)) {
+                ruleRegistry.put(className, rule);
+                requiredRuleClasses.put(className, true); // mark as found
+                log.debug("Registered required rule: {}", className);
+            } else {
+                log.debug("Skipping unreferenced rule: {}", className);
+            }
+        });
 
         // Log any missing rules
         long missingRules = requiredRuleClasses.values().stream()
@@ -333,7 +341,7 @@ public class RuleService implements IRuleService {
     private IRule<?, ?> getRuleFromRegistry(String ruleClassName) {
         IRule<?, ?> rule = ruleRegistry.get(ruleClassName);
         if (rule == null) {
-            log.debug("Skipping rule not found in registry: {}", ruleClassName);
+            log.debug("Skipping rule not found in registry: {}, {}", ruleClassName, ruleRegistry.keySet());
         }
         return rule;
     }

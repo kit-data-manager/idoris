@@ -26,6 +26,7 @@ import edu.kit.datamanager.idoris.pids.client.model.PIDRecordEntry;
 import edu.kit.datamanager.idoris.pids.dao.IPersistentIdentifierDao;
 import edu.kit.datamanager.idoris.pids.domain.PIDNode;
 import edu.kit.datamanager.idoris.pids.utils.PIDRecordMapper;
+import edu.kit.datamanager.idoris.pids.web.v1.PidController;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
@@ -39,11 +40,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 /**
  * Service class for PIDNode entities.
@@ -307,22 +310,31 @@ public class PersistentIdentifierService implements IInternalPIDService {
 
     @Override
     public List<PID> getPIDAssociatedWithInternalID(String internalId) {
+        if (internalId == null || internalId.isBlank()) return List.of();
         log.debug("Getting PIDNode for internalId: {}", internalId);
         return repository.findPidsByEntityInternalId(internalId).stream().map(PIDNode::getPid).toList();
     }
 
     @Override
     public List<Link> getPIDLinkForInternalID(String internalId) {
+        if (internalId == null || internalId.isBlank()) return List.of();
         List<PID> pids = getPIDAssociatedWithInternalID(internalId);
         if (pids != null && !pids.isEmpty()) {
+            //                        return linkTo(methodOn(PidController.class).redirectToEntity(pid.toString(), null)).withRel("pid");
             return pids.stream()
                     .filter(Objects::nonNull)
-                    .map(pid -> {
-                        URI uri = URI.create(String.format("%s/pid/%s", config.getBaseUrl(), pid.get()));
-                        return Link.of(uri.toString(), "pid");
-                    })
+                    .map(this::getLinkForPID)
                     .toList();
         }
         return List.of();
+    }
+
+    @Override
+    public Link getLinkForPID(PID pid) {
+        String endpoint = linkTo(methodOn(PidController.class).redirectToEntity(null, null)).toUri().toString();
+        endpoint = endpoint.replace("{?pid}", "");
+        endpoint = endpoint.replace("**", pid.toString());
+        log.trace("Generated Link for PID: {} -> {}", pid, endpoint);
+        return Link.of(endpoint).withRel("pid");
     }
 }

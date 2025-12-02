@@ -22,6 +22,7 @@ import edu.kit.datamanager.idoris.operations.dto.OperationResponseDto;
 import io.micrometer.observation.annotation.Observed;
 import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -38,7 +39,7 @@ import org.springframework.web.bind.annotation.*;
  * This interface defines the REST API for managing AtomicDataType entities.
  */
 @RestController
-@RequestMapping(value = "/api/v1/atomicdatatypes")
+@RequestMapping(value = "/api/v1/atomicDataTypes", version = "1")
 @Tag(name = "AtomicDataType", description = "API for managing AtomicDataTypes")
 @Observed
 public interface IAtomicDataTypeApi {
@@ -49,7 +50,7 @@ public interface IAtomicDataTypeApi {
      * @return a collection of all AtomicDataType entities
      */
     @GetMapping
-    @io.swagger.v3.oas.annotations.Operation(
+    @Operation(
             summary = "Get all AtomicDataTypes",
             description = "Returns a collection of all AtomicDataType entities",
             responses = {
@@ -68,7 +69,7 @@ public interface IAtomicDataTypeApi {
      * @return the AtomicDataType entity
      */
     @GetMapping("/{id}")
-    @io.swagger.v3.oas.annotations.Operation(
+    @Operation(
             summary = "Get an AtomicDataType by PID or internal ID",
             description = "Returns an AtomicDataType entity by its PID or internal ID",
             responses = {
@@ -92,7 +93,7 @@ public interface IAtomicDataTypeApi {
      * @return the created AtomicDataType entity
      */
     @PostMapping
-    @io.swagger.v3.oas.annotations.Operation(
+    @Operation(
             summary = "Create a new AtomicDataType",
             description = "Creates a new AtomicDataType entity after validating it",
             responses = {
@@ -117,7 +118,7 @@ public interface IAtomicDataTypeApi {
      * @return the updated AtomicDataType entity
      */
     @PutMapping("/{id}")
-    @io.swagger.v3.oas.annotations.Operation(
+    @Operation(
             summary = "Update an AtomicDataType",
             description = "Updates an existing AtomicDataType entity after validating it",
             responses = {
@@ -144,7 +145,7 @@ public interface IAtomicDataTypeApi {
      * @return no content
      */
     @DeleteMapping("/{id}")
-    @io.swagger.v3.oas.annotations.Operation(
+    @Operation(
             summary = "Delete an AtomicDataType",
             description = "Deletes an AtomicDataType entity",
             responses = {
@@ -165,7 +166,7 @@ public interface IAtomicDataTypeApi {
      * @return a collection of operations for the AtomicDataType
      */
     @GetMapping("/{id}/operations")
-    @io.swagger.v3.oas.annotations.Operation(
+    @Operation(
             summary = "Get operations for an AtomicDataType",
             description = "Returns a collection of operations that can be executed on an AtomicDataType",
             responses = {
@@ -189,7 +190,7 @@ public interface IAtomicDataTypeApi {
      * @return the patched AtomicDataType entity
      */
     @PatchMapping("/{id}")
-    @io.swagger.v3.oas.annotations.Operation(
+    @Operation(
             summary = "Partially update an AtomicDataType",
             description = "Updates specific fields of an existing AtomicDataType entity",
             responses = {

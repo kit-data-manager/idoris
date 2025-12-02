@@ -20,7 +20,6 @@ import edu.kit.datamanager.idoris.core.domain.TypeProfile;
 import edu.kit.datamanager.idoris.core.events.EventPublisherService;
 import edu.kit.datamanager.idoris.core.exceptions.ValidationException;
 import edu.kit.datamanager.idoris.datatypes.api.ITypeProfileExternalService;
-import edu.kit.datamanager.idoris.datatypes.api.ITypeProfileInternalService;
 import edu.kit.datamanager.idoris.datatypes.dao.ITypeProfileDao;
 import edu.kit.datamanager.idoris.datatypes.dto.TypeProfileDto;
 import edu.kit.datamanager.idoris.datatypes.dto.TypeProfileInheritance;
@@ -49,7 +48,7 @@ import java.util.Set;
 @Service
 @Slf4j
 @Observed(contextualName = "typeProfileDtoService")
-class TypeProfileDtoService implements ITypeProfileExternalService, ITypeProfileInternalService {
+class TypeProfileDtoService implements ITypeProfileExternalService {
 
     private final ITypeProfileDao typeProfileDao;
     private final EventPublisherService eventPublisher;
@@ -291,43 +290,5 @@ class TypeProfileDtoService implements ITypeProfileExternalService, ITypeProfile
         }
 
         return operationList;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public void ensureExists(String id) {
-        if (typeProfileDao.findById(id).isEmpty()) {
-            throw new IllegalArgumentException("TypeProfile not found: " + id);
-        }
-    }
-
-    // ===== Additional Query Operations =====
-
-    @Override
-    @Transactional
-    public void addInheritsFromInternal(String profileId, Set<String> parentIds) {
-        if (parentIds == null || parentIds.isEmpty()) return;
-        typeProfileDao.addInheritsFrom(profileId, parentIds);
-    }
-
-    @Override
-    @Transactional
-    public void removeInheritsFromInternal(String profileId, Set<String> parentIds) {
-        if (parentIds == null || parentIds.isEmpty()) return;
-        typeProfileDao.removeInheritsFrom(profileId, parentIds);
-    }
-
-    @Override
-    @Transactional
-    public void addAttributesInternal(String profileId, Set<String> attributeIds) {
-        if (attributeIds == null || attributeIds.isEmpty()) return;
-        typeProfileDao.addAttributes(profileId, attributeIds);
-    }
-
-    @Override
-    @Transactional
-    public void removeAttributesInternal(String profileId, Set<String> attributeIds) {
-        if (attributeIds == null || attributeIds.isEmpty()) return;
-        typeProfileDao.removeAttributes(profileId, attributeIds);
     }
 }

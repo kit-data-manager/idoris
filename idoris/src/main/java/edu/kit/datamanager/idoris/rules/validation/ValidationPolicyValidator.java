@@ -80,7 +80,7 @@ public class ValidationPolicyValidator extends ValidationVisitor {
                 result.addMessage("TypeProfile " + typeProfile.getId() + " defines additional properties, but inherits from the TypeProfile " +
                                 parent.getId() + " that denies additional properties.",
                         getTypeProfileAndParentElementaryInformation(typeProfile, parent,
-                                Map.of("countOfAttributes", typeProfile.getAttributes().size())), ERROR);
+                                Map.of("countOfAttributes", typeProfile.getAttributes().size())), rule, ERROR);
 
             switch (parent.getValidationPolicy()) {
                 case ALL -> {
@@ -94,7 +94,7 @@ public class ValidationPolicyValidator extends ValidationVisitor {
                                             parent.getId() + " that requires all properties.",
                                     getTypeProfileAndParentElementaryInformation(typeProfile, parent,
                                             Map.of("numberOfUndefinedAttributes", undefinedAttributes.size(),
-                                                    "undefinedAttributes", undefinedAttributes)), ERROR);
+                                                    "undefinedAttributes", undefinedAttributes)), rule, ERROR);
                         }
                     }
                 }
@@ -103,7 +103,7 @@ public class ValidationPolicyValidator extends ValidationVisitor {
                             .anyMatch(pa -> java.util.Objects.equals(pa.getDataTypeId(), a.getDataTypeId())))) {
                         result.addMessage("TypeProfile " + typeProfile.getId() + " does not define any property defined in the TypeProfile " +
                                         parent.getId() + " that requires at least one property.",
-                                getTypeProfileAndParentElementaryInformation(typeProfile, parent, null), ERROR);
+                                getTypeProfileAndParentElementaryInformation(typeProfile, parent, null), rule, ERROR);
                     }
                 }
                 case ONE -> {
@@ -111,7 +111,7 @@ public class ValidationPolicyValidator extends ValidationVisitor {
                             .anyMatch(pa -> java.util.Objects.equals(pa.getDataTypeId(), a.getDataTypeId()))).count() != 1) {
                         result.addMessage("TypeProfile " + typeProfile.getId() + " does not define exactly one property defined in the TypeProfile " +
                                         parent.getId() + " that requires exactly one property.",
-                                getTypeProfileAndParentElementaryInformation(typeProfile, parent, null), ERROR);
+                                getTypeProfileAndParentElementaryInformation(typeProfile, parent, null), rule, ERROR);
                     }
                 }
                 case NONE -> {
@@ -124,7 +124,7 @@ public class ValidationPolicyValidator extends ValidationVisitor {
                                         parent.getId() + " that requires no property.",
                                 getTypeProfileAndParentElementaryInformation(typeProfile, parent,
                                         Map.of("numberOfIllegallyDefinedAttributes", illegallyDefinedAttributes.size(),
-                                                "illegallyDefinedAttributes", illegallyDefinedAttributes)), ERROR);
+                                                "illegallyDefinedAttributes", illegallyDefinedAttributes)), rule, ERROR);
                     }
                 }
                 default -> throw new IllegalStateException("Unknown ValidationPolicy " + parent.getValidationPolicy());

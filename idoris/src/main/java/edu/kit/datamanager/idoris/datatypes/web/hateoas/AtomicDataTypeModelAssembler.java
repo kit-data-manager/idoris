@@ -20,7 +20,6 @@ import edu.kit.datamanager.idoris.core.web.hateoas.EntityModelAssembler;
 import edu.kit.datamanager.idoris.datatypes.dto.AtomicDataTypeDto;
 import edu.kit.datamanager.idoris.datatypes.web.v1.AtomicDataTypeController;
 import edu.kit.datamanager.idoris.pids.api.IInternalPIDService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.stereotype.Component;
 
@@ -33,8 +32,11 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @Component
 public class AtomicDataTypeModelAssembler implements EntityModelAssembler<AtomicDataTypeDto> {
 
-    @Autowired
-    private IInternalPIDService internalPIDService;
+    private final IInternalPIDService internalPIDService;
+
+    AtomicDataTypeModelAssembler(IInternalPIDService internalPIDService) {
+        this.internalPIDService = internalPIDService;
+    }
 
     /**
      * Converts an AtomicDataTypeDto to an EntityModel with HATEOAS links.
@@ -49,17 +51,12 @@ public class AtomicDataTypeModelAssembler implements EntityModelAssembler<Atomic
         // Add self link
         if (atomicDataTypeDto.getInternalId() != null) {
             entityModel.add(linkTo(methodOn(AtomicDataTypeController.class).getAtomicDataType(atomicDataTypeDto.getInternalId())).withSelfRel());
+            entityModel.add(internalPIDService.getPIDLinkForInternalID(atomicDataTypeDto.getInternalId()));
+            entityModel.add(linkTo(methodOn(AtomicDataTypeController.class).getOperationsForAtomicDataType(atomicDataTypeDto.getInternalId())).withRel("operations"));
         }
 
         // Add link to all atomic data types
         entityModel.add(linkTo(methodOn(AtomicDataTypeController.class).getAllAtomicDataTypes()).withRel("atomicDataTypes"));
-
-        entityModel.add(internalPIDService.getPIDLinkForInternalID(atomicDataTypeDto.getInternalId()));
-
-        // Add link to operations
-        if (atomicDataTypeDto.getInternalId() != null) {
-            entityModel.add(linkTo(methodOn(AtomicDataTypeController.class).getOperationsForAtomicDataType(atomicDataTypeDto.getInternalId())).withRel("operations"));
-        }
 
         // Add link to inherits from if present
         if (atomicDataTypeDto.getInheritsFromId() != null) {

@@ -22,6 +22,7 @@ import edu.kit.datamanager.idoris.rules.logic.RuleTask;
 import edu.kit.datamanager.idoris.rules.logic.VisitableElement;
 import edu.kit.datamanager.idoris.rules.validation.ValidationResult;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.Errors;
@@ -58,12 +59,12 @@ public class ValidationConfig {
                                                       ApplicationProperties applicationProperties) implements Validator {
 
         @Override
-        public boolean supports(Class<?> clazz) {
+        public boolean supports(@NonNull Class<?> clazz) {
             return VisitableElement.class.isAssignableFrom(clazz);
         }
 
         @Override
-        public void validate(Object target, Errors errors) {
+        public void validate(@NonNull Object target, @NonNull Errors errors) {
             if (!(target instanceof VisitableElement element)) {
                 return;
             }
@@ -105,9 +106,10 @@ public class ValidationConfig {
                             String defaultMessage = message.message();
 
                             if (severity == OutputMessage.MessageSeverity.ERROR) {
+                                // Errors are always rejected, no matter the configuration
                                 errors.reject(errorCode, defaultMessage);
                             } else {
-                                // For warnings and info, we can still add them but they won't fail validation
+                                // For warnings and info, we can still add them, but they won't fail validation
                                 errors.reject("validation.warning", defaultMessage);
                             }
                         }

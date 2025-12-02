@@ -38,7 +38,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableNeo4jRepositories
 @EnableNeo4jAuditing
 @EnableTransactionManagement
-@EnableAspectJAutoProxy(proxyTargetClass = true, exposeProxy = true)
+@EnableAspectJAutoProxy
 // Scans for aspects in the current package and sub-packages (e.g. for PIISpanAttribute)
 @ConfigurationPropertiesScan
 @Log

@@ -17,7 +17,9 @@ package edu.kit.datamanager.idoris.datatypes.mappers;
 
 import edu.kit.datamanager.idoris.core.domain.AtomicDataType;
 import edu.kit.datamanager.idoris.core.domain.valueObjects.Name;
+import edu.kit.datamanager.idoris.core.domain.valueObjects.PID;
 import edu.kit.datamanager.idoris.datatypes.dto.AtomicDataTypeDto;
+import edu.kit.datamanager.idoris.pids.api.IInternalPIDService;
 import io.micrometer.observation.annotation.Observed;
 import org.springframework.stereotype.Component;
 
@@ -30,6 +32,11 @@ import org.springframework.stereotype.Component;
 @Observed(contextualName = "atomicDataTypeMapper")
 @Component
 public class AtomicDataTypeMapper {
+    private final IInternalPIDService internalPIDService;
+
+    public AtomicDataTypeMapper(IInternalPIDService internalPIDService) {
+        this.internalPIDService = internalPIDService;
+    }
 
     public AtomicDataTypeDto toDto(AtomicDataType entity) {
         if (entity == null) return null;
@@ -46,6 +53,7 @@ public class AtomicDataTypeMapper {
                 .forbiddenValues(entity.getForbiddenValues())
                 .minimum(entity.getMinimum())
                 .maximum(entity.getMaximum())
+                .pids(internalPIDService.getPIDAssociatedWithInternalID(entity.getId()).stream().map(PID::toString).toList())
                 .build();
     }
 

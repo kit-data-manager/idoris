@@ -17,6 +17,7 @@
 package edu.kit.datamanager.idoris.rules.validation;
 
 import edu.kit.datamanager.idoris.rules.logic.OutputMessage;
+import edu.kit.datamanager.idoris.rules.logic.Rule;
 import edu.kit.datamanager.idoris.rules.logic.RuleOutput;
 import lombok.Getter;
 import lombok.Setter;
@@ -80,8 +81,8 @@ public class ValidationResult implements RuleOutput<ValidationResult> {
         return combined;
     }
 
-    public static ValidationResult error(String message, Object element) {
-        return new ValidationResult().addMessage(message, element, OutputMessage.MessageSeverity.ERROR);
+    public static ValidationResult error(String message, Rule rule, Object element) {
+        return new ValidationResult().addMessage(message, element, rule, OutputMessage.MessageSeverity.ERROR);
     }
 
     /**
@@ -92,17 +93,17 @@ public class ValidationResult implements RuleOutput<ValidationResult> {
      * @param type    the severity type of the message
      * @return this result instance for method chaining
      */
-    public ValidationResult addMessage(String message, Object element, OutputMessage.MessageSeverity type) {
-        messages.add(new OutputMessage(message, type, element));
+    public ValidationResult addMessage(String message, Object element, Rule rule, OutputMessage.MessageSeverity type) {
+        messages.add(new OutputMessage(message, type, rule, element));
         return this;
     }
 
-    public static ValidationResult warning(String message, Object element) {
-        return new ValidationResult().addMessage(message, element, OutputMessage.MessageSeverity.WARNING);
+    public static ValidationResult warning(String message, Rule rule, Object element) {
+        return new ValidationResult().addMessage(message, element, rule, WARNING);
     }
 
-    public static ValidationResult info(String message, Object element) {
-        return new ValidationResult().addMessage(message, element, OutputMessage.MessageSeverity.INFO);
+    public static ValidationResult info(String message, Rule rule, Object element) {
+        return new ValidationResult().addMessage(message, element, rule, OutputMessage.MessageSeverity.INFO);
     }
 
     public static ValidationResult ok() {
@@ -203,17 +204,33 @@ public class ValidationResult implements RuleOutput<ValidationResult> {
         try {
             // Process each ValidationResult individually
             for (ValidationResult other : others) {
-                if (other == null) continue;
-
-                if (!other.isEmpty()) {
-                    this.addChild(other);
-                }
+                // Delegate to the single-argument merge method to avoid classloader issues with varargs
+                this.merge(other); // Call the new single-argument merge
             }
         } catch (Exception e) {
             // Catch any exception to prevent the application from crashing
-            log.error("Error in ValidationResult.merge: {}", e.getMessage(), e);
+            log.error("Error in ValidationResult.merge (varargs): {}", e.getMessage(), e);
         }
 
+        return this;
+    }
+
+    /**
+     * Merges a single other ValidationResult instance into this one.
+     * This overloaded method is introduced to mitigate ClassCastExceptions
+     * that can occur with varargs and Spring Boot DevTools' class loading
+     * mechanism.
+     *
+     * @param other The other ValidationResult instance to merge.
+     * @return This instance after merging.
+     */
+    @Override // Implement the new single-argument merge method
+    public ValidationResult merge(ValidationResult other) {
+        if (other == null) return this;
+
+        if (!other.isEmpty()) {
+            this.addChild(other);
+        }
         return this;
     }
 
@@ -227,7 +244,7 @@ public class ValidationResult implements RuleOutput<ValidationResult> {
         // Convert OutputMessage to OutputMessage
         OutputMessage.MessageSeverity severity = convertSeverity(message.severity());
         Object element = message.element().length > 0 ? message.element()[0] : null;
-        messages.add(new OutputMessage(message.message(), severity, element));
+        messages.add(new OutputMessage(message.message(), severity, message.rule(), element));
         return this;
     }
 

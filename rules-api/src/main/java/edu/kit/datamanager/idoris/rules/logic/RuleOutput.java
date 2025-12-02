@@ -29,6 +29,18 @@ public interface RuleOutput<T extends RuleOutput<T>> {
     T merge(T... others);
 
     /**
+     * Merges a single other RuleOutput instance into this one.
+     * This overloaded method is introduced to mitigate ClassCastExceptions
+     * that can occur with varargs and Spring Boot DevTools' class loading
+     * mechanism, by allowing the compiler to select a more specific method
+     * without implicit array creation.
+     *
+     * @param other The other RuleOutput instance to merge.
+     * @return This instance after merging.
+     */
+    T merge(T other);
+
+    /**
      * Generates an empty output of the same type.
      * This method should be implemented to create a new instance of the output type.
      *
@@ -44,8 +56,8 @@ public interface RuleOutput<T extends RuleOutput<T>> {
      * @param elements additional elements related to the message
      * @return the updated output with the added message
      */
-    default T addMessage(String message, OutputMessage.MessageSeverity severity, Object... elements) {
-        return addMessage(new OutputMessage(message, severity, elements));
+    default T addMessage(String message, OutputMessage.MessageSeverity severity, Rule rule, Object... elements) {
+        return addMessage(new OutputMessage(message, severity, rule, elements));
     }
 
     /**

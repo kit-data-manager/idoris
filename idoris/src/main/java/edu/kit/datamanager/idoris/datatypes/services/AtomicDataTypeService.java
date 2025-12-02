@@ -35,6 +35,7 @@ import io.micrometer.observation.annotation.Observed;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -80,7 +81,7 @@ public class AtomicDataTypeService implements IAtomicDataTypeExternalService {
     @WithSpan(kind = SpanKind.INTERNAL)
     @Timed(value = "atomicDataTypeService.create", description = "Time taken to create an atomic data type", histogram = true)
     @Counted(value = "atomicDataTypeService.create.count", description = "Number of atomic data type creations")
-    public AtomicDataTypeDto create(AtomicDataTypeDto dto) {
+    public AtomicDataTypeDto create(@Valid AtomicDataTypeDto dto) {
         log.debug("Creating AtomicDataType DTO: {}", dto.getName());
 
         AtomicDataType entity = mapper.toEntity(dto);

@@ -79,7 +79,7 @@ public @interface Rule {
      *
      * @return the name of the rule
      */
-    String name(); // e.g. "PIDValidationRule"
+    String name();
 
     /**
      * Provides a description of the rule.

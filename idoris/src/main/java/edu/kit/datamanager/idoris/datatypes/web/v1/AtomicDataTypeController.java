@@ -19,7 +19,6 @@ package edu.kit.datamanager.idoris.datatypes.web.v1;
 import edu.kit.datamanager.idoris.core.configuration.PIISpanAttribute;
 import edu.kit.datamanager.idoris.datatypes.api.IAtomicDataTypeExternalService;
 import edu.kit.datamanager.idoris.datatypes.dto.AtomicDataTypeDto;
-import edu.kit.datamanager.idoris.datatypes.mappers.AtomicDataTypeMapper;
 import edu.kit.datamanager.idoris.datatypes.web.api.IAtomicDataTypeApi;
 import edu.kit.datamanager.idoris.datatypes.web.hateoas.AtomicDataTypeModelAssembler;
 import edu.kit.datamanager.idoris.operations.api.IOperationExternalService;
@@ -57,13 +56,11 @@ public class AtomicDataTypeController implements IAtomicDataTypeApi {
     private final IAtomicDataTypeExternalService atomicDataTypeService;
     private final IOperationExternalService operationService;
     private final AtomicDataTypeModelAssembler atomicDataTypeModelAssembler;
-    private final AtomicDataTypeMapper mapper;
 
-    public AtomicDataTypeController(IAtomicDataTypeExternalService atomicDataTypeService, IOperationExternalService operationService, AtomicDataTypeModelAssembler atomicDataTypeModelAssembler, AtomicDataTypeMapper mapper) {
+    public AtomicDataTypeController(IAtomicDataTypeExternalService atomicDataTypeService, IOperationExternalService operationService, AtomicDataTypeModelAssembler atomicDataTypeModelAssembler) {
         this.atomicDataTypeService = atomicDataTypeService;
         this.operationService = operationService;
         this.atomicDataTypeModelAssembler = atomicDataTypeModelAssembler;
-        this.mapper = mapper;
     }
 
     /**

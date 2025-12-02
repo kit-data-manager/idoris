@@ -35,23 +35,9 @@ public interface IDataTypeDao extends IGenericRepo<DataType> {
      * @return an Iterable of DataType entities in the inheritance chain
      */
     default Iterable<DataType> findAllInInheritanceChain(String id) {
-        // First try to find by PID
-        Optional<DataType> byPid = findByPid(id);
-        if (byPid.isPresent()) {
-            return findAllInInheritanceChainByPid(id);
-        }
-        // If not found by PID, try to find by internal ID
-        return findAllInInheritanceChainByInternalId(id);
+        Optional<DataType> elem = findByPIDorInternalId(id);
+        return elem.map(dataType -> findAllInInheritanceChainByInternalId(dataType.getId())).orElse(null);
     }
-
-    /**
-     * Finds all DataType entities in the inheritance chain of the given DataType.
-     *
-     * @param pid the PID of the DataType
-     * @return an Iterable of DataType entities in the inheritance chain
-     */
-    @Query("MATCH (d:DataType {pid: $pid})-[:inheritsFrom*]->(d2:DataType) RETURN d2")
-    Iterable<DataType> findAllInInheritanceChainByPid(String pid);
 
     /**
      * Finds all DataType entities in the inheritance chain of the given DataType.

@@ -78,7 +78,7 @@ public class AcyclicityValidator extends ValidationVisitor {
                 .all();
 
         if (!path.isEmpty()) {
-            return ValidationResult.error("Circular inheritance detected", Map.of("element", dataType, "path", path));
+            return ValidationResult.error("Circular inheritance detected", rule, Map.of("element", dataType, "path", path));
         } else {
             return ValidationResult.ok();
         }
@@ -143,7 +143,7 @@ public class AcyclicityValidator extends ValidationVisitor {
                 default -> "TypeProfile has a cyclic reference in its attributes.";
             };
 
-            return ValidationResult.error("Illegal path: " + errorMessage, Map.of(
+            return ValidationResult.error("Illegal path: " + errorMessage, rule, Map.of(
                     "element", profile,
                     "path", map.get("path"),
                     "cycleType", cycleType

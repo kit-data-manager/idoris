@@ -24,6 +24,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.util.List;
+
 /**
  * Base DTO for all DataType entities.
  * Uses polymorphic serialization to handle different DataType subtypes.
@@ -46,7 +48,6 @@ public abstract class DataTypeDto {
     /**
      * The internal identifier of the DataType.
      */
-    @JsonProperty("internalId")
     @Schema(description = "Internal identifier of the DataType", example = "dt-12345")
     private String internalId;
 
@@ -74,9 +75,9 @@ public abstract class DataTypeDto {
     /**
      * Link to the PID endpoint for this DataType.
      */
-    @JsonProperty("pidLink")
-    @Schema(description = "Link to the PID endpoint", example = "/pid/dt-12345")
-    private String pidLink;
+    @JsonProperty("pids")
+    @Schema(description = "PIDs for this entity")
+    private List<String> pids;
 
     /**
      * The type discriminator for polymorphic serialization.

@@ -24,7 +24,7 @@ import edu.kit.datamanager.idoris.datatypes.events.TypeProfileCreatedEvent;
 import edu.kit.datamanager.idoris.datatypes.events.TypeProfilePatchedEvent;
 import edu.kit.datamanager.idoris.datatypes.events.TypeProfileUpdatedEvent;
 import edu.kit.datamanager.idoris.datatypes.mappers.TypeProfileMapper;
-import edu.kit.datamanager.idoris.operations.services.api.IOperationExternalService;
+import edu.kit.datamanager.idoris.operations.api.IOperationExternalService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,12 +52,14 @@ class TypeProfileDtoServiceTest {
     @Mock
     private IOperationExternalService operationService;
 
+    @Mock
     private TypeProfileMapper mapper;
+
     private TypeProfileDtoService service;
 
     @BeforeEach
     void setUp() {
-        mapper = new TypeProfileMapper();
+//        mapper = new TypeProfileMapper();
         lenient().when(appProps.getValidationPolicy())
                 .thenReturn(ApplicationProperties.ValidationPolicy.LAX);
         service = new TypeProfileDtoService(dao, publisher, mapper, appProps, operationService);

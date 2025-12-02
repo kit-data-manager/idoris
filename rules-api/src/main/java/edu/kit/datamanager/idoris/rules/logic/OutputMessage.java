@@ -16,12 +16,18 @@
 
 package edu.kit.datamanager.idoris.rules.logic;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
+import java.util.Arrays;
 
 
+@NullMarked
 /**
  * Immutable record representing a message produced during rule processing.
  * Each message has a text content, a severity level, and optional related elements.
@@ -33,7 +39,26 @@ import org.springframework.lang.Nullable;
  * @param severity the severity level of the message, must not be null
  * @param element  optional elements related to this message (e.g., the objects that caused the message)
  */
-public record OutputMessage(@NotNull String message, @NotNull MessageSeverity severity, @Nullable Object... element) {
+public record OutputMessage(@NotNull String message, @NotNull MessageSeverity severity, @NotNull @JsonIgnore Rule rule,
+                            @Nullable Object... element) {
+
+    @JsonProperty("rule")
+    public RuleInfo getRuleInfo() {
+        return new RuleInfo(
+                rule.name(),
+                rule.description(),
+                rule.tasks(),
+                classNames(rule.appliesTo()),
+                classNames(rule.dependsOn()),
+                classNames(rule.executeBefore()),
+                classNames(rule.onError()),
+                rule.executeOnEvent()
+        );
+    }
+
+    private static String[] classNames(Class<?>[] classes) {
+        return Arrays.stream(classes).map(Class::getSimpleName).toArray(String[]::new);
+    }
 
     /**
      * Enumeration of possible message severity levels.
@@ -81,5 +106,20 @@ public record OutputMessage(@NotNull String message, @NotNull MessageSeverity se
             }
             return this.ordinal() >= other.ordinal();
         }
+    }
+
+    /**
+     * DTO projection of the Rule annotation for JSON serialization.
+     */
+    public record RuleInfo(
+            String name,
+            String description,
+            RuleTask[] tasks,
+            String[] appliesTo,
+            String[] dependsOn,
+            String[] executeBefore,
+            String[] onError,
+            RuleEvent[] executeOnEvent
+    ) {
     }
 }

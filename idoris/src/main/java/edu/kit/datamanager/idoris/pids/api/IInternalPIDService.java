@@ -22,9 +22,34 @@ import org.springframework.modulith.NamedInterface;
 
 import java.util.List;
 
+/**
+ * This API enables other endpoints to retrieve PIDs associated with entities in IDORIS and uniformly resolve them.
+ *
+ * @author maximiliani
+ */
 @NamedInterface
 public interface IInternalPIDService {
+    /**
+     * This method makes a lookup for an internal ID and returns all PIDs pointing to this ID.
+     *
+     * @param internalId The internal ID of the entity that might have PIDs
+     * @return All PIDs associated with this internal ID. If none are found, this list is empty.
+     */
     List<PID> getPIDAssociatedWithInternalID(String internalId);
 
+    /**
+     * This method retrieves all PIDs for the internal ID and returns a list of HATEOAS links that resolve this PID.
+     *
+     * @param internalId The internal ID of the entity that might have PIDs
+     * @return A list of HATEOAS links to the /pid endpoint of IDORIS, which will resolve and redirect to the domain entity.
+     */
     List<Link> getPIDLinkForInternalID(String internalId);
+
+    /**
+     * This method converts a PID into a link to the /pid/{pid} endpoint of IDORIS
+     *
+     * @param pid A valid PID
+     * @return A HATEOAS link to the /pid/{pid} endpoint, which resolves the PID and redirects the user to the domain entity.
+     */
+    Link getLinkForPID(PID pid);
 }

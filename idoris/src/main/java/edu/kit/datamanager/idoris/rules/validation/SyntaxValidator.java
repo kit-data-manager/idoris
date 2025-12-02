@@ -53,7 +53,6 @@ import static edu.kit.datamanager.idoris.rules.logic.OutputMessage.MessageSeveri
         executeBefore = {InheritanceValidator.class}
 )
 public class SyntaxValidator extends ValidationVisitor {
-
     /**
      * Validates syntax constraints for Attribute entities
      *
@@ -67,35 +66,35 @@ public class SyntaxValidator extends ValidationVisitor {
 
         if (attribute.getName() == null) {
             result.addMessage("For better human readability and understanding, you MUST provide a name for the attribute.",
-                    attribute, ERROR);
+                    attribute, rule, ERROR);
         }
 
         if (attribute.getDescription() == null) {
             result.addMessage("For better human readability and understanding, you SHOULD provide a description for the attribute.",
-                    attribute, WARNING);
+                    attribute, rule, WARNING);
         }
 
         if (attribute.getDataTypeId() == null || attribute.getDataTypeId().isBlank()) {
-            result.addMessage("You MUST provide a data type for the attribute.", attribute, ERROR);
+            result.addMessage("You MUST provide a data type for the attribute.", attribute, rule, ERROR);
         }
 
         if (attribute.getLowerBoundCardinality() == null) {
-            result.addMessage("You MUST provide a lower bound cardinality for the attribute.", attribute, ERROR);
+            result.addMessage("You MUST provide a lower bound cardinality for the attribute.", attribute, rule, ERROR);
         } else if (attribute.getLowerBoundCardinality() < 0) {
             result.addMessage("The lower bound cardinality of an attribute MUST be a positive number or zero.",
-                    attribute, ERROR);
+                    attribute, rule, ERROR);
         }
 
         if (attribute.getUpperBoundCardinality() != null && attribute.getUpperBoundCardinality() < 0) {
             result.addMessage("The upper bound cardinality of an attribute MUST be a positive number or zero.",
-                    attribute, ERROR);
+                    attribute, rule, ERROR);
         } else if (attribute.getUpperBoundCardinality() != null && attribute.getLowerBoundCardinality() != null &&
                 attribute.getUpperBoundCardinality() < attribute.getLowerBoundCardinality()) {
             result.addMessage("The upper bound cardinality of an attribute MUST be greater than or equal to the lower bound cardinality.",
-                    attribute, ERROR);
+                    attribute, rule, ERROR);
         } else if (attribute.getUpperBoundCardinality() == null) {
             result.addMessage("This attribute represents an unlimited number of values. This is not recommended, as it may lead to unexpected results in the future. Please consider setting an upper bound cardinality.",
-                    attribute, WARNING);
+                    attribute, rule, WARNING);
         }
 
         return result;
@@ -116,21 +115,21 @@ public class SyntaxValidator extends ValidationVisitor {
 
         if (attributeMapping.getName() == null || attributeMapping.getName().isEmpty()) {
             result.addMessage("For better human readability and understanding, you SHOULD provide a name for the attribute mapping.",
-                    attributeMapping, WARNING);
+                    attributeMapping, rule, WARNING);
         }
 
         if (attributeMapping.getIndex() != null && attributeMapping.getIndex() < 0) {
             result.addMessage("The index is out of range. It has to be a positive number or zero.",
-                    attributeMapping, ERROR);
+                    attributeMapping, rule, ERROR);
         }
 
         if (attributeMapping.getOutput() == null) {
-            result.addMessage("Output MUST be specified.", attributeMapping, ERROR);
+            result.addMessage("Output MUST be specified.", attributeMapping, rule, ERROR);
         }
 
         if (attributeMapping.getInput() == null && attributeMapping.getValue() == null) {
             result.addMessage("Input and value MUST NOT be unspecified at the same time.",
-                    attributeMapping, ERROR);
+                    attributeMapping, rule, ERROR);
         }
 
         // Check that the output cardinalities are compatible with the input cardinalities.
@@ -144,14 +143,14 @@ public class SyntaxValidator extends ValidationVisitor {
                                     attributeMapping.getOutput().getUpperBoundCardinality() < 1)) &&
                     attributeMapping.getIndex() == null) {
                 result.addMessage("The output cardinality is not compatible with the input cardinality. If the input has an upper cardinality of more than one, the output must have at least a lower cardinality of one and an upper cardinality of one or null.",
-                        attributeMapping, ERROR);
+                        attributeMapping, rule, ERROR);
             }
 
             // If the input has an upper cardinality smaller than the lower cardinality of the output, return an error.
             if (attributeMapping.getInput().getUpperBoundCardinality() != null &&
                     attributeMapping.getOutput().getLowerBoundCardinality() > attributeMapping.getInput().getUpperBoundCardinality()) {
                 result.addMessage("The output cardinality is not compatible with the input cardinality. The lower bound cardinality of the output must be less than or equal to the upper bound cardinality of the input.",
-                        attributeMapping, ERROR);
+                        attributeMapping, rule, ERROR);
             }
         }
 
@@ -175,7 +174,7 @@ public class SyntaxValidator extends ValidationVisitor {
 
         if (atomicDataType.getPrimitiveDataType() == null) {
             result.addMessage("You MUST provide a primitive data type for the basic data type. Please select from: " +
-                    Arrays.toString(PrimitiveDataTypes.values()), atomicDataType, ERROR);
+                    Arrays.toString(PrimitiveDataTypes.values()), atomicDataType, this.getClass().getAnnotation(Rule.class), ERROR);
         }
 
         // Ensure that all permitted and forbidden values are of the same primitive data type
@@ -183,7 +182,7 @@ public class SyntaxValidator extends ValidationVisitor {
             for (String value : atomicDataType.getPermittedValues()) {
                 if (!atomicDataType.getPrimitiveDataType().isValueValid(value)) {
                     result.addMessage("The permitted value '" + value + "' is not valid for the primitive data type " +
-                            atomicDataType.getPrimitiveDataType() + ".", atomicDataType, ERROR);
+                            atomicDataType.getPrimitiveDataType() + ".", atomicDataType, rule, ERROR);
                 }
             }
         }
@@ -193,7 +192,7 @@ public class SyntaxValidator extends ValidationVisitor {
             for (String value : atomicDataType.getPermittedValues()) {
                 if (atomicDataType.getForbiddenValues().contains(value)) {
                     result.addMessage("The permitted values and forbidden values of the atomic data type must not overlap. The value '" +
-                            value + "' is both permitted and forbidden.", atomicDataType, ERROR);
+                            value + "' is both permitted and forbidden.", atomicDataType, rule, ERROR);
                 }
             }
         }
@@ -213,17 +212,17 @@ public class SyntaxValidator extends ValidationVisitor {
     private void validateDataType(DataType dataType, ValidationResult result) {
         if (dataType.getName() == null) {
             result.addMessage("For better human readability and understanding, you MUST provide a name for the data type.",
-                    dataType, ERROR);
+                    dataType, rule, ERROR);
         }
 
         if (dataType.getDescription() == null) {
             result.addMessage("For better human readability and understanding, you SHOULD provide a description for the data type.",
-                    dataType, WARNING);
+                    dataType, rule, WARNING);
         }
 
         if (dataType.getExpectedUseCases() == null || dataType.getExpectedUseCases().isEmpty()) {
             result.addMessage("For better human readability and understanding, you SHOULD provide a list of expected uses for the data type.",
-                    dataType, WARNING);
+                    dataType, rule, WARNING);
         }
     }
 
@@ -244,7 +243,7 @@ public class SyntaxValidator extends ValidationVisitor {
 
         if (typeProfile.getValidationPolicy() == null) {
             result.addMessage("You MUST provide a validation policy for the type profile. Please select from: " +
-                    Arrays.toString(CombinationOptions.values()), typeProfile, ERROR);
+                    Arrays.toString(CombinationOptions.values()), typeProfile, rule, ERROR);
         }
 
         return result;
@@ -265,26 +264,26 @@ public class SyntaxValidator extends ValidationVisitor {
 
         if (operation.getName() == null) {
             result.addMessage("For better human readability and understanding, you MUST provide a name for the operation.",
-                    operation, ERROR);
+                    operation, rule, ERROR);
         }
 
         if (operation.getDescription() == null) {
             result.addMessage("For better human readability and understanding, you SHOULD provide a description for the operation.",
-                    operation, WARNING);
+                    operation, rule, WARNING);
         }
 
         if (operation.getExecutableOn() == null) {
             result.addMessage("You MUST specify an attribute on which the operation can be executed.",
-                    operation, ERROR);
+                    operation, rule, ERROR);
         }
 
         if ((operation.getReturns() == null || operation.getReturns().isEmpty())) {
-            result.addMessage("There are no return values provided for this Operation.", operation, INFO);
+            result.addMessage("There are no return values provided for this Operation.", operation, rule, INFO);
         }
 
         if (operation.getExecution() == null || operation.getExecution().isEmpty()) {
             result.addMessage("You MUST specify at least one execution step for a valid operation.",
-                    operation, ERROR);
+                    operation, rule, ERROR);
         }
 
         return result;
@@ -305,23 +304,23 @@ public class SyntaxValidator extends ValidationVisitor {
 
         if (operationStep.getName() == null || operationStep.getName().isEmpty()) {
             result.addMessage("For better human readability, you SHOULD provide a name for the operation step.",
-                    operationStep, WARNING);
+                    operationStep, rule, WARNING);
         }
 
         if (operationStep.getIndex() == null) {
             result.addMessage("Execution order index MUST be specified. If multiple Operation Steps for an Operation have the same index, the execution may happen in random order or be parallelized.",
-                    operationStep, ERROR);
+                    operationStep, rule, ERROR);
         }
 
         if (operationStep.getMode() == null) {
             result.addMessage("An execution mode must be specified. Default is synchronous execution. Select from: " +
-                    Arrays.toString(ExecutionMode.values()), operationStep, ERROR);
+                    Arrays.toString(ExecutionMode.values()), operationStep, rule, ERROR);
         }
 
         if ((operationStep.getExecuteOperation() == null && operationStep.getUseTechnology() == null) ||
                 (operationStep.getExecuteOperation() != null && operationStep.getUseTechnology() != null)) {
             result.addMessage("You MUST specify either an operation or an operation type profile for the operation step. You can only specify exactly one!",
-                    operationStep, ERROR);
+                    operationStep, rule, ERROR);
         }
 
         return result;
@@ -342,17 +341,17 @@ public class SyntaxValidator extends ValidationVisitor {
 
         if (technologyInterface.getName() == null) {
             result.addMessage("For better human readability and understanding, you MUST provide a name for the operation type profile.",
-                    technologyInterface, ERROR);
+                    technologyInterface, rule, ERROR);
         }
 
         if (technologyInterface.getDescription() == null) {
             result.addMessage("For better human readability and understanding, you SHOULD provide a description for the operation type profile.",
-                    technologyInterface, WARNING);
+                    technologyInterface, rule, WARNING);
         }
 
         if (technologyInterface.getAdapters() == null || technologyInterface.getAdapters().isEmpty()) {
             result.addMessage("You SHOULD specify at least one adapter for the technology interface.",
-                    technologyInterface, WARNING);
+                    technologyInterface, rule, WARNING);
         }
 
         return result;

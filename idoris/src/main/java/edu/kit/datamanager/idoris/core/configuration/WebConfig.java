@@ -32,6 +32,7 @@ import org.springframework.security.web.firewall.HttpFirewall;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
+import org.springframework.web.servlet.config.annotation.ApiVersionConfigurer;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -46,12 +47,23 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Slf4j
 public class WebConfig implements WebMvcConfigurer {
 
-    @Value("${idoris.security.enable-auth:false}")
-    private boolean enableAuth;
-    @Value("${idoris.security.enable-csrf:true}")
-    private boolean enableCsrf;
+    //    @Value("${idoris.security.enable-auth:false}")
+//    private boolean enableAuth;
+//    @Value("${idoris.security.enable-csrf:true}")
+//    private boolean enableCsrf;
     @Value("${idoris.security.allowedOriginPattern:http*://localhost:[*]}")
     private String allowedOriginPattern;
+
+    @Override
+    public void configureApiVersioning(ApiVersionConfigurer configurer) {
+        configurer.setDefaultVersion("1");
+        configurer.useRequestHeader("API-Version");
+    }
+
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        registry.addViewController("/").setViewName("forward:/swagger-ui.html");
+    }
 
     @Bean
     protected SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -124,11 +136,5 @@ public class WebConfig implements WebMvcConfigurer {
         final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfig);
         return new CorsFilter(source);
-    }
-
-
-    @Override
-    public void addViewControllers(ViewControllerRegistry registry) {
-        registry.addViewController("/").setViewName("forward:/swagger-ui.html");
     }
 }
