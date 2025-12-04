@@ -31,7 +31,7 @@ import java.net.URI;
 import java.util.*;
 
 @Controller
-@RequestMapping("/")
+@RequestMapping("/pid/")
 @Log
 public class PidRedirectController {
 
