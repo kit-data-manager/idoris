@@ -25,6 +25,7 @@ import edu.kit.datamanager.idoris.pids.client.model.PIDRecord;
 import edu.kit.datamanager.idoris.pids.client.model.PIDRecordEntry;
 import edu.kit.datamanager.idoris.pids.dao.IPersistentIdentifierDao;
 import edu.kit.datamanager.idoris.pids.domain.PIDNode;
+import edu.kit.datamanager.idoris.pids.domain.TypedPIDMakerException;
 import edu.kit.datamanager.idoris.pids.utils.PIDRecordMapper;
 import edu.kit.datamanager.idoris.pids.web.v1.PidController;
 import io.micrometer.core.annotation.Counted;
@@ -34,6 +35,7 @@ import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NullMarked;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.Link;
 import org.springframework.http.ResponseEntity;
@@ -55,6 +57,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @Service
 @Slf4j
 @Observed(contextualName = "persistentIdentifierService")
+@NullMarked
 public class PersistentIdentifierService implements IInternalPIDService {
 
     private final IPersistentIdentifierDao repository;
@@ -119,7 +122,7 @@ public class PersistentIdentifierService implements IInternalPIDService {
         ResponseEntity<PIDRecord> createdResponse = client.createPIDRecord(record);
         if (!createdResponse.getStatusCode().is2xxSuccessful()) {
             log.error("Failed to create PID record in Typed PID Maker logic: {}", createdResponse.getStatusCode());
-            throw new RuntimeException("Failed to create PID record in Typed PID Maker logic");
+            throw new TypedPIDMakerException("Failed to create preliminary record in Typed PID Maker", createdResponse);
         }
         String etag = createdResponse.getHeaders().getETag();
         PIDRecord createdRecord = createdResponse.getBody();
@@ -150,7 +153,7 @@ public class PersistentIdentifierService implements IInternalPIDService {
         ResponseEntity<PIDRecord> updatedResponse = client.updatePIDRecord(savedPid.getPid().toString(), updatedRecord, etag);
         if (!updatedResponse.getStatusCode().is2xxSuccessful()) {
             log.error("Failed to update PID record in Typed PID Maker logic: {}", updatedResponse.getStatusCode());
-            throw new RuntimeException("Failed to update PID record in Typed PID Maker logic");
+            throw new TypedPIDMakerException("Failed to update PID record in Typed PID Maker logic", updatedResponse);
         }
 
         log.info("Created PIDNode: {} with record", savedPid);
@@ -214,12 +217,12 @@ public class PersistentIdentifierService implements IInternalPIDService {
         ResponseEntity<PIDRecord> getResponse = client.getPIDRecord(pid.getPid().get());
         if (!getResponse.getStatusCode().is2xxSuccessful() || getResponse.getBody() == null) {
             log.error("Failed to retrieve PID record from Typed PID Maker logic: {}", getResponse.getStatusCode());
-            throw new RuntimeException("Failed to retrieve PID record from Typed PID Maker logic");
+            throw new TypedPIDMakerException("Failed to retrieve PID record from Typed PID Maker logic", getResponse);
         }
         PIDRecord remote = getResponse.getBody();
         if (record == null || !pid.getPid().equals(record.pid()) || !pid.getPid().equals(remote.pid())) {
             log.error("PID record is null or PID does not match: expected {}, got {} and remote {}", pid.getPid(), record != null ? record.pid() : "null", remote.pid());
-            throw new RuntimeException("PID record is null or PID does not match");
+            throw new IllegalArgumentException("PID record is null or PID does not match");
         }
         String etag = getResponse.getHeaders().getETag();
 
@@ -227,7 +230,7 @@ public class PersistentIdentifierService implements IInternalPIDService {
         ResponseEntity<PIDRecord> updatedResponse = client.updatePIDRecord(record.pid().get(), record, etag);
         if (!updatedResponse.getStatusCode().is2xxSuccessful()) {
             log.error("Failed to update PID record in Typed PID Maker logic: {}", updatedResponse.getStatusCode());
-            throw new RuntimeException("Failed to update PID record in Typed PID Maker logic");
+            throw new TypedPIDMakerException("Failed to update PID record in Typed PID Maker logic", updatedResponse);
         }
 
         log.info("Updated PID record for PIDNode: {}", pid);
@@ -310,19 +313,17 @@ public class PersistentIdentifierService implements IInternalPIDService {
 
     @Override
     public List<PID> getPIDAssociatedWithInternalID(String internalId) {
-        if (internalId == null || internalId.isBlank()) return List.of();
+        if (internalId.isBlank()) return List.of();
         log.debug("Getting PIDNode for internalId: {}", internalId);
         return repository.findPidsByEntityInternalId(internalId).stream().map(PIDNode::getPid).toList();
     }
 
     @Override
     public List<Link> getPIDLinkForInternalID(String internalId) {
-        if (internalId == null || internalId.isBlank()) return List.of();
+        if (internalId.isBlank()) return List.of();
         List<PID> pids = getPIDAssociatedWithInternalID(internalId);
-        if (pids != null && !pids.isEmpty()) {
-            //                        return linkTo(methodOn(PidController.class).redirectToEntity(pid.toString(), null)).withRel("pid");
+        if (!pids.isEmpty()) {
             return pids.stream()
-                    .filter(Objects::nonNull)
                     .map(this::getLinkForPID)
                     .toList();
         }

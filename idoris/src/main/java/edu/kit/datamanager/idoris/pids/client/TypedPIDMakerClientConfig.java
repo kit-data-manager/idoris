@@ -25,19 +25,18 @@ import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NullMarked;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
-import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.support.RestClientAdapter;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 import tools.jackson.databind.json.JsonMapper;
@@ -55,6 +54,7 @@ import java.nio.charset.StandardCharsets;
 @ConditionalOnBean(TypedPIDMakerConfig.class)
 @Observed
 @Slf4j
+@NullMarked
 public class TypedPIDMakerClientConfig {
 
     /**
@@ -98,6 +98,10 @@ public class TypedPIDMakerClientConfig {
                     // Execute the request and capture the response
                     ClientHttpResponse response = execution.execute(request, body);
 
+                    log.debug("Incoming response status {}", response.getStatusCode());
+                    log.debug("Incoming response headers: {}", response.getHeaders());
+                    log.debug("Incoming content type {}", response.getHeaders().getContentType());
+
                     // Add response attributes to the span
                     if (currentSpan != null && currentSpan.getSpanContext().isValid()) {
                         try {
@@ -111,7 +115,7 @@ public class TypedPIDMakerClientConfig {
                             String responseBody = new String(bodyBytes, StandardCharsets.UTF_8);
                             currentSpan.setAttribute("response.body", responseBody);
 
-                            log.debug("Response status: {}, headers: {}, body: {}", response.getStatusCode(), response.getHeaders(), responseBody);
+                            log.debug("Incoming response body: {}", responseBody);
 
                             // Return a new response with the buffered body
                             return new BufferedClientHttpResponse(response, bodyBytes);
@@ -121,6 +125,7 @@ public class TypedPIDMakerClientConfig {
                             currentSpan.setAttribute("response.status_text", response.getStatusText());
                             currentSpan.setAttribute("response.headers", response.getHeaders().toString());
                             currentSpan.setAttribute("response.body.error", "Failed to read response body: " + e.getMessage());
+                            log.error("Failed to read response body", e);
                         }
                     }
 
@@ -128,10 +133,6 @@ public class TypedPIDMakerClientConfig {
 
                 })
                 .requestFactory(requestFactory)
-                .defaultHeaders(headers -> headers.setAccept(java.util.List.of(MediaType.parseMediaType("application/vnd.datamanager.pid.simple+json"))))
-                .defaultStatusHandler(HttpStatusCode::isError, (request, response) -> {
-                    throw new RestClientException(String.format("Error response from Typed PID Maker: %s %s %s", response.getStatusCode(), response.getStatusText(), response));
-                })
                 .configureMessageConverters(client -> client.registerDefaults().withJsonConverter(new JacksonJsonHttpMessageConverter(jsonMapper)))
                 .build();
 
