@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,16 +41,12 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * This class configures CORS, HATEOAS, and other web-related settings.
  */
 @Configuration
-@EnableHypermediaSupport(type = {EnableHypermediaSupport.HypermediaType.HAL, EnableHypermediaSupport.HypermediaType.HAL_FORMS, EnableHypermediaSupport.HypermediaType.COLLECTION_JSON})
+@EnableHypermediaSupport(type = {EnableHypermediaSupport.HypermediaType.HAL, EnableHypermediaSupport.HypermediaType.HAL_FORMS, EnableHypermediaSupport.HypermediaType.COLLECTION_JSON, EnableHypermediaSupport.HypermediaType.HTTP_PROBLEM_DETAILS})
 @EnableWebSecurity
 @EnableMethodSecurity
 @Slf4j
 public class WebConfig implements WebMvcConfigurer {
 
-    //    @Value("${idoris.security.enable-auth:false}")
-//    private boolean enableAuth;
-//    @Value("${idoris.security.enable-csrf:true}")
-//    private boolean enableCsrf;
     @Value("${idoris.security.allowedOriginPattern:http*://localhost:[*]}")
     private String allowedOriginPattern;
 
@@ -68,37 +64,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Bean
     protected SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable).authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
-        return http.build();
-
-//        http.authorizeHttpRequests(authorize -> authorize
-//                        // everyone, even unauthenticated users may do HTTP OPTIONS on urls or access swagger
-//                        .requestMatchers(HttpMethod.OPTIONS, "/**", "/swagger-ui.html", "/swagger-ui/*", "/v3/**").permitAll()
-//                        // permit access to actuator endpoints
-//                        .requestMatchers("/actuator/**").permitAll()
-//                        // TODO protect the actual API
-//                        .requestMatchers("/api/v1/**").permitAll())
-//                // do not store sessions (use stateless "sessions")
-//                .sessionManagement(management -> management.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-////                .addFilterAfter(keycloaktokenFilterBean(), BasicAuthenticationFilter.class)
-//                .headers(headers -> headers.cacheControl(HeadersConfigurer.CacheControlConfig::disable))
-//                .csrf(csrf -> {
-//                    if (!enableCsrf) {
-//                        log.info("Disable CSRF");
-//                        // https://developer.mozilla.org/en-US/docs/Glossary/CSRF
-//                        csrf.disable();
-//                    }
-//                });
-//
-//
-//        if (!enableAuth) {
-//            log.info("Authentication is DISABLED. Adding 'NoAuthenticationFilter' to authentication chain.");
-//            AuthenticationManager defaultAuthenticationManager = http.getSharedObject(AuthenticationManager.class);
-////            http.addFilterAfter(new NoAuthenticationFilter(jwtSecret, defaultAuthenticationManager), KeycloakTokenFilter.class); TODO
-//        } else {
-//            log.info("Authentication is ENABLED.");
-//        }
-//
-//        return http.build();
+        return http.build(); // TODO configure security properly
     }
 
     /**

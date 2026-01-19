@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2024-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package edu.kit.datamanager.idoris.rules.validation;
+package edu.kit.datamanager.idoris.datatypes.rules;
 
 import edu.kit.datamanager.idoris.core.domain.AtomicDataType;
-import edu.kit.datamanager.idoris.core.domain.Attribute;
 import edu.kit.datamanager.idoris.core.domain.TypeProfile;
+import edu.kit.datamanager.idoris.core.domain.ValidationResult;
+import edu.kit.datamanager.idoris.core.domain.ValidationVisitor;
 import edu.kit.datamanager.idoris.rules.logic.Rule;
 import edu.kit.datamanager.idoris.rules.logic.RuleTask;
 import io.micrometer.core.annotation.Counted;
@@ -37,51 +38,17 @@ import static edu.kit.datamanager.idoris.rules.logic.OutputMessage.MessageSeveri
  * inherited properties maintain consistency with parent entities.
  */
 @Slf4j
-@Observed(contextualName = "inheritanceValidator")
+@Observed
 @Rule(
         appliesTo = {
                 AtomicDataType.class,
-                Attribute.class,
                 TypeProfile.class
         },
-        name = "InheritanceValidationRule",
-        description = "Validates that entities properly follow inheritance rules and constraints",
-        tasks = {RuleTask.VALIDATE}
+        name = "DataTypeInheritanceValidator",
+        description = "Validates that data types properly follow inheritance rules and constraints",
+        tasks = RuleTask.VALIDATE
 )
 public class InheritanceValidator extends ValidationVisitor {
-
-    /**
-     * Validates inheritance relationships for Attribute entities
-     *
-     * @param attribute The attribute to validate
-     * @param args      Additional arguments (not used in this implementation)
-     * @return ValidationResult containing any validation errors
-     */
-    @WithSpan(kind = SpanKind.INTERNAL)
-    public ValidationResult visit(Attribute attribute, Object... args) {
-        ValidationResult result = new ValidationResult();
-
-        if (attribute.getOverride() != null && attribute.getOverride().getDataTypeId() != null) {
-            Attribute override = attribute.getOverride();
-
-            // NOTE: Cross-module dependency to DataType removed; cannot verify inheritance here without logic call.
-            // This validation will be handled in datatypes module when linking relationships.
-            // Keeping only cardinality validations below.
-
-            if (attribute.getLowerBoundCardinality() < override.getLowerBoundCardinality())
-                result.addMessage("The lower bound cardinality of an attribute MUST be more or equally restrictive than the lower bound cardinality of the attribute that was overwritten. Overriding a more restrictive attribute as a less restrictive attribute is NOT possible.",
-                        attribute, rule, ERROR);
-
-            if (attribute.getUpperBoundCardinality() == null && override.getUpperBoundCardinality() != null) {
-                result.addMessage("The upper bound cardinality of an attribute MUST be defined if the attribute that was overwritten has an upper bound cardinality defined.",
-                        attribute, rule, ERROR);
-            } else if (override.getUpperBoundCardinality() != null && attribute.getUpperBoundCardinality() > override.getUpperBoundCardinality())
-                result.addMessage("The upper bound cardinality of an attribute MUST be more or equally restrictive than the upper bound cardinality of the attribute that was overwritten. Overriding a less restrictive attribute as a more restrictive attribute is NOT possible.",
-                        attribute, rule, ERROR);
-        }
-
-        return result;
-    }
 
     /**
      * Validates inheritance relationships for AtomicDataType entities
@@ -102,7 +69,7 @@ public class InheritanceValidator extends ValidationVisitor {
                 result.addMessage("Primitive data type does not match parent", atomicDataType, rule, ERROR);
 
             // Compare permitted values with parent
-            if (parent.getPermittedValues() != null && parent.getPermittedValues().size() > 0) {
+            if (parent.getPermittedValues() != null && !parent.getPermittedValues().isEmpty()) {
                 if (atomicDataType.getPermittedValues() == null || atomicDataType.getPermittedValues().isEmpty())
                     result.addMessage("Permitted values are not defined for atomic data type, but should contain at least those defined by the parent",
                             atomicDataType, rule, ERROR);
@@ -111,7 +78,7 @@ public class InheritanceValidator extends ValidationVisitor {
             }
 
             // Compare forbidden values with parent
-            if (parent.getForbiddenValues() != null && parent.getForbiddenValues().size() > 0) {
+            if (parent.getForbiddenValues() != null && !parent.getForbiddenValues().isEmpty()) {
                 if (atomicDataType.getForbiddenValues() == null || atomicDataType.getForbiddenValues().isEmpty())
                     result.addMessage("Forbidden values are not defined for atomic data type, but should contain at least those defined by the parent",
                             atomicDataType, rule, ERROR);
@@ -143,7 +110,7 @@ public class InheritanceValidator extends ValidationVisitor {
     public ValidationResult visit(TypeProfile typeProfile, Object... args) {
         ValidationResult result = new ValidationResult();
 
-        if (typeProfile.getInheritsFrom() != null && typeProfile.getInheritsFrom().size() > 0) {
+        if (typeProfile.getInheritsFrom() != null && !typeProfile.getInheritsFrom().isEmpty()) {
             for (TypeProfile parent : typeProfile.getInheritsFrom()) {
                 if (parent.isAbstract() && !typeProfile.isAbstract()) {
                     result.addMessage("TypeProfile " + typeProfile.getId() + " is not abstract, but inherits from the TypeProfile " +

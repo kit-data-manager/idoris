@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2024-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-package edu.kit.datamanager.idoris.rules.validation;
+package edu.kit.datamanager.idoris.datatypes.rules;
 
 import edu.kit.datamanager.idoris.core.domain.Attribute;
 import edu.kit.datamanager.idoris.core.domain.TypeProfile;
+import edu.kit.datamanager.idoris.core.domain.ValidationResult;
+import edu.kit.datamanager.idoris.core.domain.ValidationVisitor;
 import edu.kit.datamanager.idoris.core.domain.enums.CombinationOptions;
 import edu.kit.datamanager.idoris.rules.logic.Rule;
 import edu.kit.datamanager.idoris.rules.logic.RuleTask;
@@ -42,12 +44,11 @@ import static edu.kit.datamanager.idoris.rules.logic.OutputMessage.MessageSeveri
 @Slf4j
 @Observed(contextualName = "validationPolicyValidator")
 @Rule(
-        appliesTo = {
-                TypeProfile.class
-        },
+        appliesTo = TypeProfile.class,
         name = "ValidationPolicyRule",
         description = "Validates that entities follow the validation policies defined by their parent entities",
-        tasks = {RuleTask.VALIDATE}
+        dependsOn = InheritanceValidator.class,
+        tasks = RuleTask.VALIDATE
 )
 public class ValidationPolicyValidator extends ValidationVisitor {
 

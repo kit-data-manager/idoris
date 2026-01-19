@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,9 @@
 
 package edu.kit.datamanager.idoris.datatypes.rules;
 
-import edu.kit.datamanager.idoris.core.domain.AtomicDataType;
-import edu.kit.datamanager.idoris.core.domain.DataType;
-import edu.kit.datamanager.idoris.core.domain.TypeProfile;
+import edu.kit.datamanager.idoris.core.domain.*;
 import edu.kit.datamanager.idoris.rules.logic.Rule;
-import edu.kit.datamanager.idoris.rules.validation.SyntaxValidator;
-import edu.kit.datamanager.idoris.rules.validation.ValidationResult;
-import edu.kit.datamanager.idoris.rules.validation.ValidationVisitor;
+import edu.kit.datamanager.idoris.rules.logic.RuleTask;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
@@ -44,8 +40,8 @@ import java.util.Map;
         },
         name = "AcyclicityValidationRule",
         description = "Validates that entities do not form cycles in their inheritance structure",
-        tasks = {edu.kit.datamanager.idoris.rules.logic.RuleTask.VALIDATE},
-        dependsOn = {SyntaxValidator.class}
+        tasks = RuleTask.VALIDATE,
+        dependsOn = SyntaxValidator.class
 )
 public class AcyclicityValidator extends ValidationVisitor {
     private final Neo4jClient neo4jClient;

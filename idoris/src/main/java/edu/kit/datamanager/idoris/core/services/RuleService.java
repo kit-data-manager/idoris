@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package edu.kit.datamanager.idoris.rules.logic;
+package edu.kit.datamanager.idoris.core.services;
 
+import edu.kit.datamanager.idoris.rules.logic.*;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,7 @@
  * limitations under the License.
  */
 
-package edu.kit.datamanager.idoris.rules.validation;
-
-/**
- * A specialized visitor for validating domain entities against defined rules.
- *
- * <p>This visitor traverses the domain model and delegates validation to the rule logic.
- * For each visited element, it executes all applicable validation rules and accumulates
- * the results into a hierarchical validation report.</p>
- *
- * <p>The visitor uses caching to avoid redundant validation of the same elements and
- * can detect and handle cycles in the domain model graph.</p>
- *
- * <p>This implementation is a Spring component that can be injected into services that
- * need validation capabilities.</p>
- */
+package edu.kit.datamanager.idoris.core.domain;
 
 import edu.kit.datamanager.idoris.rules.logic.IRule;
 import edu.kit.datamanager.idoris.rules.logic.VisitableElement;

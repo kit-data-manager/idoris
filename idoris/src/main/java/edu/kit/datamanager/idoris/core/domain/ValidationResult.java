@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2024-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package edu.kit.datamanager.idoris.rules.validation;
+package edu.kit.datamanager.idoris.core.domain;
 
 import edu.kit.datamanager.idoris.rules.logic.OutputMessage;
 import edu.kit.datamanager.idoris.rules.logic.Rule;
