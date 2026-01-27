@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package edu.kit.datamanager.idoris.datatypes.web;
 
-import edu.kit.datamanager.idoris.datatypes.api.ITypeProfileExternalService;
+import edu.kit.datamanager.idoris.datatypes.api.ITypeProfileService;
 import edu.kit.datamanager.idoris.datatypes.dto.TypeProfileDto;
 import edu.kit.datamanager.idoris.datatypes.web.hateoas.TypeProfileModelAssembler;
 import edu.kit.datamanager.idoris.datatypes.web.v1.TypeProfileController;
@@ -41,7 +41,7 @@ import static org.mockito.Mockito.when;
 class TypeProfileControllerUnitTest {
 
     @Mock
-    private ITypeProfileExternalService service;
+    private ITypeProfileService service;
 
     private TypeProfileController controller;
 

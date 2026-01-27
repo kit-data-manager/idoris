@@ -29,6 +29,7 @@ import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Configuration class for validation-related settings.
@@ -102,7 +103,7 @@ public class ValidationConfig {
                         List<OutputMessage> messages = entry.getValue();
 
                         for (OutputMessage message : messages) {
-                            String errorCode = "validation." + severity.name().toLowerCase();
+                            String errorCode = "validation." + severity.name().toLowerCase(Locale.ROOT);
                             String defaultMessage = message.message();
 
                             if (severity == OutputMessage.MessageSeverity.ERROR) {

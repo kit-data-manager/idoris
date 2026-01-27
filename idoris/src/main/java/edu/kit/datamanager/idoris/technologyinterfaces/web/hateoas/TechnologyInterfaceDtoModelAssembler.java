@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package edu.kit.datamanager.idoris.technologyinterfaces.web.hateoas;
 
-import edu.kit.datamanager.idoris.pids.api.IInternalPIDService;
+import edu.kit.datamanager.idoris.metadata.pids.api.IInternalPIDService;
 import edu.kit.datamanager.idoris.technologyinterfaces.dto.TechnologyInterfaceDto;
 import edu.kit.datamanager.idoris.technologyinterfaces.web.v1.TechnologyInterfaceController;
 import io.micrometer.observation.annotation.Observed;

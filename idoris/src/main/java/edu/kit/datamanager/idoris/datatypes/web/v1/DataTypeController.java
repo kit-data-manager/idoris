@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package edu.kit.datamanager.idoris.datatypes.web.v1;
 
-import edu.kit.datamanager.idoris.datatypes.api.IDataTypeExternalService;
+import edu.kit.datamanager.idoris.datatypes.api.IDataTypeService;
 import edu.kit.datamanager.idoris.datatypes.dto.DataTypeDto;
 import edu.kit.datamanager.idoris.datatypes.web.hateoas.DataTypeModelAssembler;
 import io.micrometer.core.annotation.Counted;
@@ -46,7 +46,7 @@ import java.util.Optional;
 public class DataTypeController {
 
     @Autowired
-    private IDataTypeExternalService dataTypeService;
+    private IDataTypeService dataTypeService;
 
     @Autowired
     private DataTypeModelAssembler assembler;

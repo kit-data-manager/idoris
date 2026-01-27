@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,13 @@ import java.text.SimpleDateFormat
 
 plugins {
     id "java"
-    id "org.springframework.boot" version "4.0.0"
+    id "org.springframework.boot" version "4.0.2"
     id "io.spring.dependency-management" version "1.1.7"
-    id "io.freefair.lombok" version "9.1.0"
-    id "io.freefair.maven-publish-java" version "9.1.0"
-    id "org.owasp.dependencycheck" version "12.1.9"
+    id "io.freefair.lombok" version "9.2.0"
+    id "io.freefair.maven-publish-java" version "9.2.0"
+    id "org.owasp.dependencycheck" version "12.2.0"
     id "org.asciidoctor.jvm.convert" version "4.0.5"
-    id "net.ltgt.errorprone" version "4.3.0"
+    id "net.ltgt.errorprone" version "4.4.0"
     id "net.researchgate.release" version "3.1.0"
     id "com.gorylenko.gradle-git-properties" version "2.5.4"
     id "jacoco"
@@ -35,7 +35,6 @@ description = 'IDORIS - An Integrated Data Type and Operations Registry with Inh
 group = 'edu.kit.datamanager'
 version = '0.0.2-SNAPSHOT'
 
-// Update source/target compatibility syntax
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(25)
@@ -54,12 +53,12 @@ repositories {
 }
 
 ext {
-    springDocVersion = "3.0.0"
-    errorproneVersion = "2.44.0"
+    springDocVersion = "3.0.1"
+    errorproneVersion = "2.46.0"
     javersVersion = "7.3.7"
-    openTelemetryInstrumentationVersion = "2.22.0"
+    openTelemetryInstrumentationVersion = "2.24.0"
     set("snippetsDir", file("build/generated-snippets"))
-    set("springModulithVersion", "2.0.0")
+    set("springModulithVersion", "2.0.2")
     gitProperties.dotGitDirectory = file("../.git")
 }
 
@@ -75,14 +74,11 @@ dependencies {
     annotationProcessor project(":rules-processor")
 
     /* Spring Boot starters (version comes from the BOM) */
-//    implementation "org.springframework:spring-core"
     implementation 'org.springframework.boot:spring-boot-starter-restclient'
     implementation "org.springframework.boot:spring-boot-starter-webmvc"
     implementation 'org.springframework.boot:spring-boot-starter-aspectj'
     implementation 'org.springframework.boot:spring-boot-starter-amqp'
-//    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
     implementation "org.springframework.boot:spring-boot-starter-data-neo4j"
-//    implementation "org.springframework.boot:spring-boot-starter-data-elasticsearch"
     implementation "org.springframework.boot:spring-boot-starter-hateoas"
     implementation "org.springframework.boot:spring-boot-starter-validation"
     implementation "org.springframework.boot:spring-boot-starter-security"
@@ -99,9 +95,6 @@ dependencies {
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springDocVersion}"
     implementation "org.springdoc:springdoc-openapi-starter-webmvc-api:${springDocVersion}"
     implementation "org.springdoc:springdoc-openapi-starter-common:${springDocVersion}"
-
-    /* HTTP client */
-//    implementation "org.apache.httpcomponents.client5:httpclient5:${httpClientVersion}"
 
     /* Observability */
     implementation(platform("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:${openTelemetryInstrumentationVersion}"))
@@ -138,7 +131,6 @@ dependencies {
     testImplementation "org.springframework.modulith:spring-modulith-starter-test"
     testImplementation 'org.springframework.boot:spring-boot-micrometer-tracing-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
-//    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-neo4j-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-hateoas-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-opentelemetry-test'
@@ -157,7 +149,6 @@ dependencyManagement {
     }
 }
 
-// Modify JavaCompile tasks configuration
 tasks.withType(JavaCompile).configureEach {
     if (name.toLowerCase().contains('test')) {
         options.errorprone.enabled = false
@@ -177,7 +168,6 @@ tasks.withType(JavaCompile).configureEach {
     }
 }
 
-// Update test configuration
 tasks.named('test') {
     outputs.dir snippetsDir
     useJUnitPlatform()
@@ -217,12 +207,10 @@ tasks.named('asciidoctor') {
     }
 }
 
-// Update jar configuration
 tasks.named('jar') {
     enabled = false
 }
 
-// Update bootJar configuration
 bootJar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {

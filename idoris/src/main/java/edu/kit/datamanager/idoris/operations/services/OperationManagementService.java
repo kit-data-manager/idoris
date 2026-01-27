@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ package edu.kit.datamanager.idoris.operations.services;
 
 import edu.kit.datamanager.idoris.core.domain.valueObjects.AttributeMapping;
 import edu.kit.datamanager.idoris.core.domain.valueObjects.OperationStep;
-import edu.kit.datamanager.idoris.operations.api.IOperationManagementExternalService;
+import edu.kit.datamanager.idoris.operations.api.IOperationStepsService;
 import edu.kit.datamanager.idoris.operations.dao.IOperationDao;
 import edu.kit.datamanager.idoris.operations.dao.IOperationRelationshipDao;
 import edu.kit.datamanager.idoris.operations.dao.IOperationStepDao;
@@ -36,7 +36,7 @@ import java.util.Set;
 @Slf4j
 @Observed(contextualName = "operationManagementService")
 @RequiredArgsConstructor
-class OperationManagementService implements IOperationManagementExternalService {
+class OperationManagementService implements IOperationStepsService {
 
     private final IOperationDao operationDao;
     private final IOperationStepDao stepDao;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +17,13 @@ package edu.kit.datamanager.idoris.datatypes.services;
 
 import edu.kit.datamanager.idoris.core.domain.AtomicDataType;
 import edu.kit.datamanager.idoris.core.domain.TypeProfile;
-import edu.kit.datamanager.idoris.datatypes.api.IDataTypeExternalService;
+import edu.kit.datamanager.idoris.datatypes.api.IDataTypeService;
 import edu.kit.datamanager.idoris.datatypes.dao.IAtomicDataTypeDao;
 import edu.kit.datamanager.idoris.datatypes.dao.ITypeProfileDao;
 import edu.kit.datamanager.idoris.datatypes.dto.DataTypeDto;
 import edu.kit.datamanager.idoris.datatypes.mappers.AtomicDataTypeMapper;
 import edu.kit.datamanager.idoris.datatypes.mappers.TypeProfileMapper;
-import edu.kit.datamanager.idoris.operations.api.IOperationExternalService;
+import edu.kit.datamanager.idoris.operations.api.IOperationService;
 import edu.kit.datamanager.idoris.operations.dto.OperationResponseDto;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
@@ -45,19 +45,19 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 @Observed(contextualName = "dataTypeDtoService")
-class DataTypeDtoService implements IDataTypeExternalService {
+class DataTypeDtoService implements IDataTypeService {
 
     private final IAtomicDataTypeDao atomicDataTypeDao;
     private final ITypeProfileDao typeProfileDao;
     private final AtomicDataTypeMapper atomicDataTypeMapper;
     private final TypeProfileMapper typeProfileMapper;
-    private final IOperationExternalService operationService;
+    private final IOperationService operationService;
 
     public DataTypeDtoService(IAtomicDataTypeDao atomicDataTypeDao,
                               ITypeProfileDao typeProfileDao,
                               AtomicDataTypeMapper atomicDataTypeMapper,
                               TypeProfileMapper typeProfileMapper,
-                              IOperationExternalService operationService) {
+                              IOperationService operationService) {
         this.atomicDataTypeDao = atomicDataTypeDao;
         this.typeProfileDao = typeProfileDao;
         this.atomicDataTypeMapper = atomicDataTypeMapper;
@@ -201,10 +201,40 @@ class DataTypeDtoService implements IDataTypeExternalService {
 
         // Try to find as AtomicDataType
         Optional<AtomicDataType> atomicDataType = atomicDataTypeDao.findById(id);
-        if (atomicDataType.isPresent()) {
-            return Optional.of(atomicDataTypeMapper.toDto(atomicDataType.get()));
+        return atomicDataType.map(atomicDataTypeMapper::toDto);
+
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @WithSpan(kind = SpanKind.INTERNAL)
+    @Timed(value = "dataTypeDtoService.inheritsFrom", histogram = true)
+    @Counted(value = "dataTypeDtoService.inheritsFrom.count")
+    public Boolean inheritsFrom(String childId, String parentId) {
+        log.debug("Checking if DataType {} inherits from {}", childId, parentId);
+
+        // Get inheritance hierarchy for the child DataType
+        Object hierarchy = getInheritanceHierarchy(childId);
+        if (!(hierarchy instanceof Map<?, ?> hierarchyMap)) {
+            return false;
         }
 
-        return Optional.empty();
+        // Extract the list of parents
+        Object inheritsFromObj = hierarchyMap.get("inheritsFrom");
+        if (!(inheritsFromObj instanceof List<?> parentsList)) {
+            return false;
+        }
+
+        // Check if any parent matches the parentId
+        for (Object parentObj : parentsList) {
+            if (parentObj instanceof Map<?, ?> parentMap) {
+                Object idObj = parentMap.get("id");
+                if (parentId.equals(idObj)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

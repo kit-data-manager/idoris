@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2024-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,9 @@ package edu.kit.datamanager.idoris.users.web.v1;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.kit.datamanager.idoris.core.domain.User;
+import edu.kit.datamanager.idoris.metadata.users.web.hateoas.UserModelAssembler;
+import edu.kit.datamanager.idoris.metadata.users.web.v1.UserController;
 import edu.kit.datamanager.idoris.users.services.api.UserService;
-import edu.kit.datamanager.idoris.users.web.hateoas.UserModelAssembler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

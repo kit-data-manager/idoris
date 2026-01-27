@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,6 @@ import java.util.Optional;
 @Slf4j
 public class AttributeMappingService {
     private final IAttributeMappingDao attributeMappingDao;
-    private final EventPublisherService eventPublisher;
 
     /**
      * Creates a new AttributeMappingService with the given dependencies.
@@ -45,7 +44,6 @@ public class AttributeMappingService {
      */
     public AttributeMappingService(IAttributeMappingDao attributeMappingDao, EventPublisherService eventPublisher) {
         this.attributeMappingDao = attributeMappingDao;
-        this.eventPublisher = eventPublisher;
     }
 
     /**

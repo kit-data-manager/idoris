@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,9 @@
 package edu.kit.datamanager.idoris.pids.web.v1;
 
 import edu.kit.datamanager.idoris.core.domain.AdministrativeMetadata;
-import edu.kit.datamanager.idoris.pids.domain.PIDNode;
-import edu.kit.datamanager.idoris.pids.services.PersistentIdentifierService;
+import edu.kit.datamanager.idoris.metadata.pids.domain.PIDNode;
+import edu.kit.datamanager.idoris.metadata.pids.services.PersistentIdentifierService;
+import edu.kit.datamanager.idoris.metadata.pids.web.v1.PidController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -87,7 +88,7 @@ class PidControllerTest {
         PIDNode.setCreatedAt(Instant.now());
         PIDNode.setLastModifiedAt(Instant.now());
         PIDNode.setVersion(1L);
-        edu.kit.datamanager.idoris.pids.domain.PIDNode.setMetadata(new HashMap<>());
+        edu.kit.datamanager.idoris.metadata.pids.domain.PIDNode.setMetadata(new HashMap<>());
         return PIDNode;
     }
 

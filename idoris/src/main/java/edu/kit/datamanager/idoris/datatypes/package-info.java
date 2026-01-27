@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,6 @@
  */
 @org.springframework.modulith.ApplicationModule(
         displayName = "IDORIS DataTypes",
-        allowedDependencies = {"core", "attributes", "rules", "operations", "operations :: operations.services.api", "operations :: dto", "pids :: api"}
+        allowedDependencies = {"core", "attributes", "operations", "operations :: operations.services.api", "operations :: dto", "metadata.pids :: api"}
 )
 package edu.kit.datamanager.idoris.datatypes;

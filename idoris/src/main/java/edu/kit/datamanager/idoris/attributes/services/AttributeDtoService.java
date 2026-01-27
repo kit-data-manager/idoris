@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,7 @@
  */
 package edu.kit.datamanager.idoris.attributes.services;
 
-import edu.kit.datamanager.idoris.attributes.api.IAttributeExternalService;
-import edu.kit.datamanager.idoris.attributes.api.IAttributeInternalService;
+import edu.kit.datamanager.idoris.attributes.api.IAttributeService;
 import edu.kit.datamanager.idoris.attributes.dao.IAttributeDao;
 import edu.kit.datamanager.idoris.attributes.dto.AttributeDto;
 import edu.kit.datamanager.idoris.attributes.mappers.AttributeMapper;
@@ -42,7 +41,7 @@ import java.util.Optional;
 @Service
 @Slf4j
 @Observed(contextualName = "attributeDtoService")
-public class AttributeDtoService implements IAttributeExternalService, IAttributeInternalService {
+public class AttributeDtoService implements IAttributeService {
 
     private final IAttributeDao attributeDao;
     private final EventPublisherService eventPublisher;
@@ -132,12 +131,6 @@ public class AttributeDtoService implements IAttributeExternalService, IAttribut
         return get(attributeId).orElseThrow();
     }
 
-    @Override
-    @Transactional
-    public AttributeDto detachDataType(String attributeId) {
-        attributeDao.detachDataType(attributeId);
-        return get(attributeId).orElseThrow();
-    }
 
     @Override
     @Transactional
@@ -148,42 +141,8 @@ public class AttributeDtoService implements IAttributeExternalService, IAttribut
 
     @Override
     @Transactional
-    public AttributeDto detachOverride(String attributeId) {
+    public AttributeDto removeOverride(String attributeId) {
         attributeDao.detachOverride(attributeId);
         return get(attributeId).orElseThrow();
-    }
-
-    // ===== Internal API =====
-
-    @Override
-    @Transactional(readOnly = true)
-    public void ensureExists(String id) {
-        if (attributeDao.findById(id).isEmpty()) {
-            throw new IllegalArgumentException("Attribute not found: " + id);
-        }
-    }
-
-    @Override
-    @Transactional
-    public void setDataTypeInternal(String attributeId, String dataTypeId) {
-        attributeDao.setDataType(attributeId, dataTypeId);
-    }
-
-    @Override
-    @Transactional
-    public void detachDataTypeInternal(String attributeId) {
-        attributeDao.detachDataType(attributeId);
-    }
-
-    @Override
-    @Transactional
-    public void setOverrideInternal(String attributeId, String overrideAttributeId) {
-        attributeDao.setOverride(attributeId, overrideAttributeId);
-    }
-
-    @Override
-    @Transactional
-    public void detachOverrideInternal(String attributeId) {
-        attributeDao.detachOverride(attributeId);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,16 +17,16 @@ package edu.kit.datamanager.idoris.datatypes.services;
 
 import edu.kit.datamanager.idoris.core.configuration.ApplicationProperties;
 import edu.kit.datamanager.idoris.core.domain.TypeProfile;
+import edu.kit.datamanager.idoris.core.domain.ValidationResult;
 import edu.kit.datamanager.idoris.core.events.EventPublisherService;
 import edu.kit.datamanager.idoris.core.exceptions.ValidationException;
-import edu.kit.datamanager.idoris.datatypes.api.ITypeProfileExternalService;
+import edu.kit.datamanager.idoris.datatypes.api.ITypeProfileService;
 import edu.kit.datamanager.idoris.datatypes.dao.ITypeProfileDao;
 import edu.kit.datamanager.idoris.datatypes.dto.TypeProfileDto;
 import edu.kit.datamanager.idoris.datatypes.dto.TypeProfileInheritance;
 import edu.kit.datamanager.idoris.datatypes.mappers.TypeProfileMapper;
-import edu.kit.datamanager.idoris.operations.api.IOperationExternalService;
-import edu.kit.datamanager.idoris.rules.validation.ValidationPolicyValidator;
-import edu.kit.datamanager.idoris.rules.validation.ValidationResult;
+import edu.kit.datamanager.idoris.datatypes.rules.TypeProfileValidationPolicyValidator;
+import edu.kit.datamanager.idoris.operations.api.IOperationService;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
@@ -48,15 +48,15 @@ import java.util.Set;
 @Service
 @Slf4j
 @Observed(contextualName = "typeProfileDtoService")
-class TypeProfileDtoService implements ITypeProfileExternalService {
+class TypeProfileDtoService implements ITypeProfileService {
 
     private final ITypeProfileDao typeProfileDao;
     private final EventPublisherService eventPublisher;
     private final TypeProfileMapper mapper;
     private final ApplicationProperties appProps;
-    private final IOperationExternalService operationService;
+    private final IOperationService operationService;
 
-    public TypeProfileDtoService(ITypeProfileDao typeProfileDao, EventPublisherService eventPublisher, TypeProfileMapper mapper, ApplicationProperties appProps, IOperationExternalService operationService) {
+    public TypeProfileDtoService(ITypeProfileDao typeProfileDao, EventPublisherService eventPublisher, TypeProfileMapper mapper, ApplicationProperties appProps, IOperationService operationService) {
         this.typeProfileDao = typeProfileDao;
         this.eventPublisher = eventPublisher;
         this.mapper = mapper;
@@ -95,7 +95,7 @@ class TypeProfileDtoService implements ITypeProfileExternalService {
      * STRICT: errors or warnings cause failure. LAX: only errors cause failure.
      */
     private void validateOrThrow(TypeProfile typeProfile) {
-        ValidationPolicyValidator validator = new ValidationPolicyValidator();
+        TypeProfileValidationPolicyValidator validator = new TypeProfileValidationPolicyValidator();
         ValidationResult result = typeProfile.execute(validator);
         boolean strict = appProps.getValidationPolicy() == ApplicationProperties.ValidationPolicy.STRICT;
         boolean hasErrors = result.getErrorCount() > 0;

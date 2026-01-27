@@ -54,9 +54,9 @@ public abstract class ValidationVisitor extends Visitor<ValidationResult> implem
 
         if (AopUtils.isAopProxy(this)) {
             Object target = AopProxyUtils.getSingletonTarget(this);
-            if (target instanceof Visitor) {
+            if (target instanceof Visitor<?> vtarget) {
                 //noinspection unchecked
-                visitorInstance = (Visitor<ValidationResult>) target;
+                visitorInstance = (Visitor<ValidationResult>) vtarget;
             }
         }
 

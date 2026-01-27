@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,11 @@
 package edu.kit.datamanager.idoris.operations.services;
 
 import edu.kit.datamanager.idoris.core.domain.Operation;
+import edu.kit.datamanager.idoris.core.domain.ValidationResult;
 import edu.kit.datamanager.idoris.core.domain.valueObjects.AttributeMapping;
 import edu.kit.datamanager.idoris.core.domain.valueObjects.OperationStep;
-import edu.kit.datamanager.idoris.operations.api.IOperationExternalService;
+import edu.kit.datamanager.idoris.core.services.RuleService;
+import edu.kit.datamanager.idoris.operations.api.IOperationService;
 import edu.kit.datamanager.idoris.operations.dao.IAttributeMappingDao;
 import edu.kit.datamanager.idoris.operations.dao.IOperationDao;
 import edu.kit.datamanager.idoris.operations.dao.IOperationRelationshipDao;
@@ -32,11 +34,11 @@ import edu.kit.datamanager.idoris.operations.events.OperationDeletedEvent;
 import edu.kit.datamanager.idoris.operations.events.OperationPatchedEvent;
 import edu.kit.datamanager.idoris.operations.events.OperationUpdatedEvent;
 import edu.kit.datamanager.idoris.operations.mappers.OperationMapper;
-import edu.kit.datamanager.idoris.rules.validation.ValidationPolicyValidator;
-import edu.kit.datamanager.idoris.rules.validation.ValidationResult;
+import edu.kit.datamanager.idoris.rules.logic.RuleTask;
 import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,7 +49,7 @@ import java.util.Optional;
 @Slf4j
 @Observed(contextualName = "operationDtoService")
 @RequiredArgsConstructor
-class OperationDtoService implements IOperationExternalService {
+class OperationDtoService implements IOperationService {
 
     private final OperationService operationService;
     private final IOperationDao operationDao;
@@ -56,6 +58,9 @@ class OperationDtoService implements IOperationExternalService {
     private final IOperationRelationshipDao relDao;
     private final IAttributeMappingDao attributeMappingDao;
     private final edu.kit.datamanager.idoris.core.events.EventPublisherService eventPublisher;
+
+    @Autowired
+    private RuleService ruleService;
 
     @Override
     @Transactional
@@ -139,8 +144,7 @@ class OperationDtoService implements IOperationExternalService {
     @Transactional(readOnly = true)
     public ValidationResult validate(String id) {
         Operation op = operationService.getOperation(id).orElseThrow(() -> new IllegalArgumentException("Operation not found: " + id));
-        ValidationPolicyValidator validator = new ValidationPolicyValidator();
-        return op.execute(validator);
+        return ruleService.executeRules(RuleTask.VALIDATE, op, ValidationResult::new);
     }
 
     private String createStepRecursive(String operationId, String parentStepId, OperationStepDto stepDto) {

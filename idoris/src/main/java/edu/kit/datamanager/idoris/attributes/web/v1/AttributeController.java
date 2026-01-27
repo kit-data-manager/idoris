@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package edu.kit.datamanager.idoris.attributes.web.v1;
 
-import edu.kit.datamanager.idoris.attributes.api.IAttributeExternalService;
+import edu.kit.datamanager.idoris.attributes.api.IAttributeService;
 import edu.kit.datamanager.idoris.attributes.dto.AttributeDto;
 import edu.kit.datamanager.idoris.attributes.web.hateoas.AttributeModelAssembler;
 import io.micrometer.core.annotation.Counted;
@@ -28,7 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -46,7 +45,7 @@ import java.util.Optional;
 public class AttributeController {
 
     @Autowired
-    private IAttributeExternalService attributeService;
+    private IAttributeService attributeService;
 
     @Autowired
     private AttributeModelAssembler assembler;
@@ -76,7 +75,9 @@ public class AttributeController {
     @Counted(value = "attributeController.create.count", description = "Number of attribute create requests")
     public ResponseEntity<EntityModel<AttributeDto>> create(@RequestBody AttributeDto dto) {
         AttributeDto created = attributeService.create(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(assembler.toModel(created));
+        return ResponseEntity.created(
+                assembler.toModel(created).getRequiredLink("self").toUri()
+        ).build();
     }
 
     @PutMapping("/{id}")
@@ -133,7 +134,7 @@ public class AttributeController {
         if (attributeService.get(id).isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        AttributeDto dto = attributeService.detachDataType(id);
+        AttributeDto dto = attributeService.removeOverride(id);
         return ResponseEntity.ok(assembler.toModel(dto));
     }
 
@@ -153,7 +154,7 @@ public class AttributeController {
         if (attributeService.get(id).isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        AttributeDto dto = attributeService.detachOverride(id);
+        AttributeDto dto = attributeService.removeOverride(id);
         return ResponseEntity.ok(assembler.toModel(dto));
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,11 @@
 package edu.kit.datamanager.idoris.datatypes.web.v1;
 
 import edu.kit.datamanager.idoris.core.configuration.PIISpanAttribute;
-import edu.kit.datamanager.idoris.datatypes.api.IAtomicDataTypeExternalService;
+import edu.kit.datamanager.idoris.datatypes.api.IAtomicDataTypeService;
 import edu.kit.datamanager.idoris.datatypes.dto.AtomicDataTypeDto;
 import edu.kit.datamanager.idoris.datatypes.web.api.IAtomicDataTypeApi;
 import edu.kit.datamanager.idoris.datatypes.web.hateoas.AtomicDataTypeModelAssembler;
-import edu.kit.datamanager.idoris.operations.api.IOperationExternalService;
+import edu.kit.datamanager.idoris.operations.api.IOperationService;
 import edu.kit.datamanager.idoris.operations.dto.OperationResponseDto;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
@@ -53,11 +53,11 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @Observed(contextualName = "atomicDataTypeController")
 public class AtomicDataTypeController implements IAtomicDataTypeApi {
 
-    private final IAtomicDataTypeExternalService atomicDataTypeService;
-    private final IOperationExternalService operationService;
+    private final IAtomicDataTypeService atomicDataTypeService;
+    private final IOperationService operationService;
     private final AtomicDataTypeModelAssembler atomicDataTypeModelAssembler;
 
-    public AtomicDataTypeController(IAtomicDataTypeExternalService atomicDataTypeService, IOperationExternalService operationService, AtomicDataTypeModelAssembler atomicDataTypeModelAssembler) {
+    public AtomicDataTypeController(IAtomicDataTypeService atomicDataTypeService, IOperationService operationService, AtomicDataTypeModelAssembler atomicDataTypeModelAssembler) {
         this.atomicDataTypeService = atomicDataTypeService;
         this.operationService = operationService;
         this.atomicDataTypeModelAssembler = atomicDataTypeModelAssembler;

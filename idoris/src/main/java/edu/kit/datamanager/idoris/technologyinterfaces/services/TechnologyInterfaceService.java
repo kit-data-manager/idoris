@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,10 @@
 
 package edu.kit.datamanager.idoris.technologyinterfaces.services;
 
-import edu.kit.datamanager.idoris.attributes.api.IAttributeInternalService;
+import edu.kit.datamanager.idoris.attributes.api.IAttributeService;
 import edu.kit.datamanager.idoris.core.domain.TechnologyInterface;
 import edu.kit.datamanager.idoris.core.events.EventPublisherService;
-import edu.kit.datamanager.idoris.technologyinterfaces.api.ITechnologyInterfaceExternalService;
-import edu.kit.datamanager.idoris.technologyinterfaces.api.ITechnologyInterfaceInternalService;
+import edu.kit.datamanager.idoris.technologyinterfaces.api.ITechnologyInterfaceService;
 import edu.kit.datamanager.idoris.technologyinterfaces.dao.ITechnologyInterfaceDao;
 import edu.kit.datamanager.idoris.technologyinterfaces.dto.TechnologyInterfaceDto;
 import edu.kit.datamanager.idoris.technologyinterfaces.mappers.TechnologyInterfaceMapper;
@@ -46,11 +45,11 @@ import java.util.Set;
 @Service
 @Slf4j
 @Observed(contextualName = "technologyInterfaceService")
-class TechnologyInterfaceService implements ITechnologyInterfaceExternalService, ITechnologyInterfaceInternalService {
+class TechnologyInterfaceService implements ITechnologyInterfaceService {
     private final ITechnologyInterfaceDao technologyInterfaceDao;
     private final EventPublisherService eventPublisher;
     private final TechnologyInterfaceMapper mapper;
-    private final IAttributeInternalService attributeInternalService;
+    private final IAttributeService attributeService;
 
     /**
      * Creates a new TechnologyInterfaceService with the given dependencies.
@@ -59,11 +58,11 @@ class TechnologyInterfaceService implements ITechnologyInterfaceExternalService,
      * @param eventPublisher         the event publisher logic
      * @param mapper                 the mapper for DTO/entity conversion
      */
-    public TechnologyInterfaceService(ITechnologyInterfaceDao technologyInterfaceDao, EventPublisherService eventPublisher, TechnologyInterfaceMapper mapper, IAttributeInternalService attributeInternalService) {
+    public TechnologyInterfaceService(ITechnologyInterfaceDao technologyInterfaceDao, EventPublisherService eventPublisher, TechnologyInterfaceMapper mapper, IAttributeService attributeService) {
         this.technologyInterfaceDao = technologyInterfaceDao;
         this.eventPublisher = eventPublisher;
         this.mapper = mapper;
-        this.attributeInternalService = attributeInternalService;
+        this.attributeService = attributeService;
     }
 
     /**
@@ -242,7 +241,7 @@ class TechnologyInterfaceService implements ITechnologyInterfaceExternalService,
     private void ensureAttributesExist(Set<String> attributeIds) {
         if (attributeIds == null || attributeIds.isEmpty()) return;
         for (String attrId : attributeIds) {
-            attributeInternalService.ensureExists(attrId);
+            assert attributeService.get(attrId).isPresent();
         }
     }
 
@@ -327,43 +326,5 @@ class TechnologyInterfaceService implements ITechnologyInterfaceExternalService,
         if (attributeIds == null || attributeIds.isEmpty()) return get(technologyInterfaceId).orElseThrow();
         technologyInterfaceDao.unlinkOutputs(technologyInterfaceId, attributeIds);
         return get(technologyInterfaceId).orElseThrow();
-    }
-
-    // ===================== Internal API =====================
-
-    @Override
-    @Transactional(readOnly = true)
-    public void ensureExists(String id) {
-        if (technologyInterfaceDao.findById(id).isEmpty()) {
-            throw new IllegalArgumentException("TechnologyInterface not found with ID: " + id);
-        }
-    }
-
-    @Override
-    @Transactional
-    public void linkInputsInternal(String technologyInterfaceId, Set<String> attributeIds) {
-        if (attributeIds == null || attributeIds.isEmpty()) return;
-        technologyInterfaceDao.linkInputs(technologyInterfaceId, attributeIds);
-    }
-
-    @Override
-    @Transactional
-    public void unlinkInputsInternal(String technologyInterfaceId, Set<String> attributeIds) {
-        if (attributeIds == null || attributeIds.isEmpty()) return;
-        technologyInterfaceDao.unlinkInputs(technologyInterfaceId, attributeIds);
-    }
-
-    @Override
-    @Transactional
-    public void linkOutputsInternal(String technologyInterfaceId, Set<String> attributeIds) {
-        if (attributeIds == null || attributeIds.isEmpty()) return;
-        technologyInterfaceDao.linkOutputs(technologyInterfaceId, attributeIds);
-    }
-
-    @Override
-    @Transactional
-    public void unlinkOutputsInternal(String technologyInterfaceId, Set<String> attributeIds) {
-        if (attributeIds == null || attributeIds.isEmpty()) return;
-        technologyInterfaceDao.unlinkOutputs(technologyInterfaceId, attributeIds);
     }
 }

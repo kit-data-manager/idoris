@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@
 package edu.kit.datamanager.idoris.pids;
 
 import edu.kit.datamanager.idoris.core.configuration.ApplicationProperties;
-import edu.kit.datamanager.idoris.core.configuration.TypedPIDMakerConfig;
 import edu.kit.datamanager.idoris.core.domain.AdministrativeMetadata;
-import edu.kit.datamanager.idoris.pids.client.TypedPIDMakerClient;
-import edu.kit.datamanager.idoris.pids.client.model.PIDRecord;
+import edu.kit.datamanager.idoris.metadata.pids.TypedPIDMakerConfig;
+import edu.kit.datamanager.idoris.metadata.pids.client.TypedPIDMakerClient;
+import edu.kit.datamanager.idoris.metadata.pids.client.model.PIDRecord;
 import edu.kit.datamanager.idoris.rules.logic.RuleOutput;
 import edu.kit.datamanager.idoris.rules.logic.Visitor;
 import org.junit.jupiter.api.BeforeEach;

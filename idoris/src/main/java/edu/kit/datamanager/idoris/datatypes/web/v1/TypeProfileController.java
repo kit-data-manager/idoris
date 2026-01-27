@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package edu.kit.datamanager.idoris.datatypes.web.v1;
 
-import edu.kit.datamanager.idoris.datatypes.api.ITypeProfileExternalService;
+import edu.kit.datamanager.idoris.datatypes.api.ITypeProfileService;
 import edu.kit.datamanager.idoris.datatypes.dto.TypeProfileDto;
 import edu.kit.datamanager.idoris.datatypes.web.api.ITypeProfileApi;
 import edu.kit.datamanager.idoris.datatypes.web.hateoas.TypeProfileModelAssembler;
@@ -47,17 +47,17 @@ import java.util.Set;
 @Observed(contextualName = "typeProfileController")
 public class TypeProfileController implements ITypeProfileApi {
 
-    private final ITypeProfileExternalService service;
+    private final ITypeProfileService service;
     private final TypeProfileModelAssembler assembler;
 
     @Autowired
-    public TypeProfileController(ITypeProfileExternalService service) {
+    public TypeProfileController(ITypeProfileService service) {
         this.service = service;
         // Fallback assembler to avoid requiring bean in slice tests
         this.assembler = new TypeProfileModelAssembler();
     }
 
-    public TypeProfileController(ITypeProfileExternalService service, TypeProfileModelAssembler assembler) {
+    public TypeProfileController(ITypeProfileService service, TypeProfileModelAssembler assembler) {
         this.service = service;
         this.assembler = assembler;
     }
@@ -71,6 +71,7 @@ public class TypeProfileController implements ITypeProfileApi {
         return ResponseEntity.ok(assembler.toCollectionModel(dtos));
     }
 
+    @Override
     @WithSpan(kind = SpanKind.SERVER)
     @Timed(value = "typeProfileController.get", histogram = true)
     @Counted(value = "typeProfileController.get.count")
@@ -79,6 +80,7 @@ public class TypeProfileController implements ITypeProfileApi {
         return dto.map(d -> ResponseEntity.ok(assembler.toModel(d))).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @Override
     @GetMapping("/{id}/operations")
     @WithSpan(kind = SpanKind.SERVER)
     @Timed(value = "typeProfileController.getOperationsForTypeProfile", histogram = true)
@@ -106,6 +108,7 @@ public class TypeProfileController implements ITypeProfileApi {
         return ResponseEntity.ok(collectionModel);
     }
 
+    @Override
     @GetMapping("/{id}/inheritedAttributes")
     @WithSpan(kind = SpanKind.SERVER)
     @Timed(value = "typeProfileController.getInheritedAttributes", histogram = true)
@@ -160,6 +163,7 @@ public class TypeProfileController implements ITypeProfileApi {
         return ResponseEntity.noContent().build();
     }
 
+    @Override
     @GetMapping("/{id}/inheritanceTree")
     @WithSpan(kind = SpanKind.SERVER)
     @Timed(value = "typeProfileController.getInheritanceTree", histogram = true)

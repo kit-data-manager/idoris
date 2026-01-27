@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import edu.kit.datamanager.idoris.datatypes.events.TypeProfileCreatedEvent;
 import edu.kit.datamanager.idoris.datatypes.events.TypeProfilePatchedEvent;
 import edu.kit.datamanager.idoris.datatypes.events.TypeProfileUpdatedEvent;
 import edu.kit.datamanager.idoris.datatypes.mappers.TypeProfileMapper;
-import edu.kit.datamanager.idoris.operations.api.IOperationExternalService;
+import edu.kit.datamanager.idoris.operations.api.IOperationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,7 +50,7 @@ class TypeProfileDtoServiceTest {
     private ApplicationProperties appProps;
 
     @Mock
-    private IOperationExternalService operationService;
+    private IOperationService operationService;
 
     @Mock
     private TypeProfileMapper mapper;

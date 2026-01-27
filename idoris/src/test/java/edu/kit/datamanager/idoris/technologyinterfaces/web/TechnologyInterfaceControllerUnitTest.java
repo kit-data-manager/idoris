@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,14 +15,12 @@
  */
 package edu.kit.datamanager.idoris.technologyinterfaces.web;
 
+import edu.kit.datamanager.idoris.technologyinterfaces.api.ITechnologyInterfaceService;
 import edu.kit.datamanager.idoris.technologyinterfaces.dto.TechnologyInterfaceDto;
-import edu.kit.datamanager.idoris.technologyinterfaces.services.api.ITechnologyInterfaceExternalService;
-import edu.kit.datamanager.idoris.technologyinterfaces.web.hateoas.TechnologyInterfaceDtoModelAssembler;
 import edu.kit.datamanager.idoris.technologyinterfaces.web.v1.TechnologyInterfaceController;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpStatus;
@@ -32,7 +30,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -41,26 +40,27 @@ import static org.mockito.Mockito.when;
 class TechnologyInterfaceControllerUnitTest {
 
     @Mock
-    private ITechnologyInterfaceExternalService service;
+    private ITechnologyInterfaceService service;
 
+    @InjectMocks
     private TechnologyInterfaceController controller;
 
-    @BeforeEach
-    void setup() {
-        MockitoAnnotations.openMocks(this);
-        controller = new TechnologyInterfaceController();
-        // inject mock via reflection because fields are @Autowired
-        try {
-            var f = TechnologyInterfaceController.class.getDeclaredField("technologyInterfaceService");
-            f.setAccessible(true);
-            f.set(controller, service);
-            var a = TechnologyInterfaceController.class.getDeclaredField("assembler");
-            a.setAccessible(true);
-            a.set(controller, new TechnologyInterfaceDtoModelAssembler());
-        } catch (Exception e) {
-            fail("Failed to inject dependencies: " + e.getMessage());
-        }
-    }
+//    @BeforeEach
+//    void setup() {
+//        MockitoAnnotations.openMocks(this);
+//        controller = new TechnologyInterfaceController);
+//        // inject mock via reflection because fields are @Autowired
+//        try {
+//            var f = TechnologyInterfaceController.class.getDeclaredField("technologyInterfaceService");
+//            f.setAccessible(true);
+//            f.set(controller, service);
+//            var a = TechnologyInterfaceController.class.getDeclaredField("assembler");
+//            a.setAccessible(true);
+//            a.set(controller, new TechnologyInterfaceDtoModelAssembler());
+//        } catch (Exception e) {
+//            fail("Failed to inject dependencies: " + e.getMessage());
+//        }
+//    }
 
     @Test
     void get_returnsOkOrNotFound() {

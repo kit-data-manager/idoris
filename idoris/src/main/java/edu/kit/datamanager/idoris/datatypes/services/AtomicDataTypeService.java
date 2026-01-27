@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,15 +20,15 @@ package edu.kit.datamanager.idoris.datatypes.services;
 
 import edu.kit.datamanager.idoris.core.configuration.ApplicationProperties;
 import edu.kit.datamanager.idoris.core.domain.AtomicDataType;
+import edu.kit.datamanager.idoris.core.domain.ValidationResult;
 import edu.kit.datamanager.idoris.core.events.EventPublisherService;
 import edu.kit.datamanager.idoris.core.exceptions.ValidationException;
-import edu.kit.datamanager.idoris.datatypes.api.IAtomicDataTypeExternalService;
+import edu.kit.datamanager.idoris.core.services.RuleService;
+import edu.kit.datamanager.idoris.datatypes.api.IAtomicDataTypeService;
 import edu.kit.datamanager.idoris.datatypes.dao.IAtomicDataTypeDao;
 import edu.kit.datamanager.idoris.datatypes.dto.AtomicDataTypeDto;
 import edu.kit.datamanager.idoris.datatypes.mappers.AtomicDataTypeMapper;
-import edu.kit.datamanager.idoris.rules.logic.RuleService;
 import edu.kit.datamanager.idoris.rules.logic.RuleTask;
-import edu.kit.datamanager.idoris.rules.validation.ValidationResult;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 @Observed(contextualName = "atomicDataTypeService")
-public class AtomicDataTypeService implements IAtomicDataTypeExternalService {
+public class AtomicDataTypeService implements IAtomicDataTypeService {
     private final IAtomicDataTypeDao atomicDataTypeDao;
     private final EventPublisherService eventPublisher;
     private final AtomicDataTypeMapper mapper;

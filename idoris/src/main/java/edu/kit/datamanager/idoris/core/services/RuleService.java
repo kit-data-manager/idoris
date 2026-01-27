@@ -244,6 +244,7 @@ public class RuleService implements IRuleService {
      * @throws RuntimeException if a critical error occurs during rule execution that prevents
      *                          completion of the operation
      */
+    @Override
     @WithSpan(kind = SpanKind.INTERNAL)
     @Timed(value = "rules.ruleService.executeRules", description = "Time to execute all rules for a given task/element", histogram = true)
     @Counted(value = "rules.ruleService.executeRules.count", description = "Rule execution entrypoints")

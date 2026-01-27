@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2024-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 
 package edu.kit.datamanager.idoris.operations.web.v1;
 
-import edu.kit.datamanager.idoris.operations.api.IOperationExternalService;
-import edu.kit.datamanager.idoris.operations.api.IOperationManagementExternalService;
+import edu.kit.datamanager.idoris.core.domain.ValidationResult;
+import edu.kit.datamanager.idoris.operations.api.IOperationService;
+import edu.kit.datamanager.idoris.operations.api.IOperationStepsService;
 import edu.kit.datamanager.idoris.operations.dto.OperationRequestDto;
 import edu.kit.datamanager.idoris.operations.dto.OperationResponseDto;
 import edu.kit.datamanager.idoris.operations.web.hateoas.OperationDtoModelAssembler;
-import edu.kit.datamanager.idoris.rules.validation.ValidationResult;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
@@ -52,13 +52,13 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @Observed(contextualName = "operationController")
 public class OperationController {
 
-    private final IOperationExternalService operationService;
+    private final IOperationService operationService;
 
-    private final IOperationManagementExternalService operationManagementService;
+    private final IOperationStepsService operationManagementService;
 
     private final OperationDtoModelAssembler assembler;
 
-    public OperationController(IOperationExternalService operationService, IOperationManagementExternalService operationManagementService, OperationDtoModelAssembler assembler) {
+    public OperationController(IOperationService operationService, IOperationStepsService operationManagementService, OperationDtoModelAssembler assembler) {
         this.operationService = operationService;
         this.operationManagementService = operationManagementService;
         this.assembler = assembler;

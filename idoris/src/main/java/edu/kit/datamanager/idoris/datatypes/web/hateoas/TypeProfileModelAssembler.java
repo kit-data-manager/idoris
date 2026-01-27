@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ package edu.kit.datamanager.idoris.datatypes.web.hateoas;
 
 import edu.kit.datamanager.idoris.datatypes.dto.TypeProfileDto;
 import edu.kit.datamanager.idoris.datatypes.web.v1.TypeProfileController;
-import edu.kit.datamanager.idoris.pids.api.IInternalPIDService;
+import edu.kit.datamanager.idoris.metadata.pids.api.IInternalPIDService;
 import io.micrometer.observation.annotation.Observed;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.CollectionModel;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2025-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package edu.kit.datamanager.idoris.technologyinterfaces.web.v1;
 
-import edu.kit.datamanager.idoris.technologyinterfaces.api.ITechnologyInterfaceExternalService;
+import edu.kit.datamanager.idoris.technologyinterfaces.api.ITechnologyInterfaceService;
 import edu.kit.datamanager.idoris.technologyinterfaces.dto.TechnologyInterfaceDto;
 import edu.kit.datamanager.idoris.technologyinterfaces.web.hateoas.TechnologyInterfaceDtoModelAssembler;
 import io.micrometer.core.annotation.Counted;
@@ -47,11 +47,11 @@ import java.util.Set;
 @Observed(contextualName = "technologyInterfaceController")
 public class TechnologyInterfaceController {
 
-    private final ITechnologyInterfaceExternalService technologyInterfaceService;
+    private final ITechnologyInterfaceService technologyInterfaceService;
 
     private final TechnologyInterfaceDtoModelAssembler assembler;
 
-    public TechnologyInterfaceController(ITechnologyInterfaceExternalService technologyInterfaceService, TechnologyInterfaceDtoModelAssembler assembler) {
+    public TechnologyInterfaceController(ITechnologyInterfaceService technologyInterfaceService, TechnologyInterfaceDtoModelAssembler assembler) {
         this.technologyInterfaceService = technologyInterfaceService;
         this.assembler = assembler;
     }

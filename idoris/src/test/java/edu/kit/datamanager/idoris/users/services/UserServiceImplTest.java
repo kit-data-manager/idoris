@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Karlsruhe Institute of Technology
+ * Copyright (c) 2024-2026 Karlsruhe Institute of Technology
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package edu.kit.datamanager.idoris.users.services;
 
 import edu.kit.datamanager.idoris.core.domain.User;
-import edu.kit.datamanager.idoris.users.dao.IUserDao;
+import edu.kit.datamanager.idoris.metadata.users.dao.IUserDao;
+import edu.kit.datamanager.idoris.metadata.users.services.IUserServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
