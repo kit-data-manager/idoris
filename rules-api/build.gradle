@@ -41,5 +41,5 @@ dependencies {
 
     // Add Spring annotations as optional (for @Nullable and @Component)
     compileOnly 'org.springframework:spring-core:6.2.7'
-    compileOnly 'org.springframework:spring-context:6.2.7'
+    compileOnly 'org.springframework:spring-context:6.2.19'
 }
