@@ -59,7 +59,7 @@ repositories {
 }
 
 ext {
-    springBootVersion = "3.5.0"
+    springBootVersion = "3.5.16"
     springDocVersion = "2.8.8"
     errorproneVersion = "2.38.0"
     errorproneJavacVersion = "9+181-r4173-1"     // keep until a newer tag is published
