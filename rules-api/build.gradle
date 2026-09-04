@@ -36,8 +36,8 @@ dependencies {
     implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
 
     // Add Lombok for the enum
-    compileOnly 'org.projectlombok:lombok:1.18.38'
-    annotationProcessor 'org.projectlombok:lombok:1.18.38'
+    compileOnly 'org.projectlombok:lombok:1.18.48'
+    annotationProcessor 'org.projectlombok:lombok:1.18.48'
 
     // Add Spring annotations as optional (for @Nullable and @Component)
     compileOnly 'org.springframework:spring-core:6.2.7'
